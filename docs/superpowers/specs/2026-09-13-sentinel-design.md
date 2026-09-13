@@ -1,4 +1,4 @@
-# Dispatch — design
+# Sentinel — design
 
 Date: 2026-09-13
 Status: approved in brainstorm, awaiting spec review
@@ -20,19 +20,19 @@ minimal black-and-white UI to browse sessions, runs and live logs.
 | Skill scope | Plan, dispatch, wait, review. Parallel runs allowed. |
 | Pi provider and model | Default `opencode-go` / `deepseek-v4.1-flash`, overridable per run. |
 | Stack | Bun + TypeScript. Bun ships SQLite and an HTTP server, Pi itself is TypeScript. |
-| Location | `~/garage/dispatch` |
+| Location | `~/garage/sentinel` |
 
 Out of scope for v1: watching all Claude sessions, auth, remote access,
 editing briefs in the UI, OpenRouter (the stored key is dead).
 
 ## Components
 
-### dispatchd (daemon)
+### sentineld (daemon)
 
 - Bun HTTP server on `127.0.0.1:4747`, run as a systemd user service
-  (`dispatchd.service`), with `dispatch daemon` as a manual fallback.
-- State directory `~/.local/share/dispatch/`:
-  - `dispatch.db` — SQLite (bun:sqlite).
+  (`sentineld.service`), with `sentinel daemon` as a manual fallback.
+- State directory `~/.local/share/sentinel/`:
+  - `sentinel.db` — SQLite (bun:sqlite).
   - `runs/<runId>/brief.md`, `events.jsonl` (raw Pi JSON events),
     `stderr.log`, `result.md`, `pi-session/` (Pi's own session dir via
     `--session-dir`).
@@ -49,35 +49,35 @@ editing briefs in the UI, OpenRouter (the stored key is dead).
 - Broadcasts events to SSE subscribers per run and a global SSE feed for
   list updates.
 
-### dispatch (CLI)
+### sentinel (CLI)
 
 Thin HTTP client used by the skill and by humans. All commands print JSON
 with `--json` (default when stdout is not a TTY).
 
 ```
-dispatch run --session <claudeSessionId> --cwd <dir> --title <t> --brief-file <f> [--model m] [--provider p] [--thinking l] [--wait] [--timeout s]
-dispatch wait <runId...>          # blocks until all given runs finish, prints results
-dispatch status [--session id]    # sessions and runs summary
-dispatch logs <runId> [--follow]  # events rendered as text
-dispatch result <runId>           # prints result.md
-dispatch cancel <runId>
-dispatch open                     # opens the UI in the browser
-dispatch daemon                   # runs the daemon in the foreground
+sentinel run --session <claudeSessionId> --cwd <dir> --title <t> --brief-file <f> [--model m] [--provider p] [--thinking l] [--wait] [--timeout s]
+sentinel wait <runId...>          # blocks until all given runs finish, prints results
+sentinel status [--session id]    # sessions and runs summary
+sentinel logs <runId> [--follow]  # events rendered as text
+sentinel result <runId>           # prints result.md
+sentinel cancel <runId>
+sentinel open                     # opens the UI in the browser
+sentinel daemon                   # runs the daemon in the foreground
 ```
 
-### Claude skill `~/.claude/skills/dispatch/SKILL.md`
+### Claude skill `~/.claude/skills/sentinel/SKILL.md`
 
 Trigger: user asks to execute, build or research via Pi, or says
-"dispatch". Steps the skill instructs Claude to follow:
+"sentinel" or "dispatch". Steps the skill instructs Claude to follow:
 
 1. Derive the Claude session id from the scratchpad path
    (`.../<sessionId>/scratchpad`).
 2. Plan the work. Split into units that do not touch the same files.
 3. For each unit write a brief in the scratchpad: goal, context, files,
    constraints, acceptance criteria, what to report back.
-4. `dispatch run` each brief with `--cwd` set to the project. Fire
+4. `sentinel run` each brief with `--cwd` set to the project. Fire
    independent units in one Bash call so they run in parallel.
-5. `dispatch wait` on the run ids.
+5. `sentinel wait` on the run ids.
 6. Read results, verify independently (tests, diff, build). If a unit
    failed or is incomplete, write a follow-up brief and dispatch again.
 7. Report to the user with run ids and the UI link.
@@ -153,7 +153,7 @@ loopback only.
 
 - Unit: Pi event parser (fixtures from real `pi -p --mode json` output),
   store operations, run id generation, queue and concurrency cap.
-- Integration: start the daemon with `DISPATCH_PI_BIN` pointing at a fake
+- Integration: start the daemon with `SENTINEL_PI_BIN` pointing at a fake
   `pi` script that emits canned events and sleeps, then exercise run,
   wait, cancel, timeout and SSE through the CLI.
 - Smoke: one real run through OpenCode Go with `deepseek-v4.1-flash`.
@@ -162,13 +162,13 @@ loopback only.
 ## Repository layout
 
 ```
-dispatch/
+sentinel/
   package.json
   src/daemon/   server.ts, runner.ts, store.ts, events.ts, sse.ts
   src/cli/      main.ts
   src/ui/       index.html
-  skill/        SKILL.md          (symlinked into ~/.claude/skills/dispatch)
-  systemd/      dispatchd.service
+  skill/        SKILL.md          (symlinked into ~/.claude/skills/sentinel)
+  systemd/      sentineld.service
   test/
   docs/superpowers/specs/
 ```
