@@ -63,6 +63,7 @@ sentinel result <runId>           # prints result.md
 sentinel cancel <runId>
 sentinel open                     # opens the UI in the browser
 sentinel daemon                   # runs the daemon in the foreground
+sentinel install                  # writes the systemd user unit, enables it, symlinks the skill
 ```
 
 ### Claude skill `~/.claude/skills/sentinel/SKILL.md`
@@ -105,6 +106,13 @@ Single `index.html` served at `/`, no framework, no build step.
 - Keyboard: `j`/`k` move within the focused pane, `Enter` moves right,
   `Esc` moves left, `c` cancels a running run with a confirmation.
 - Collapses to one pane on narrow widths.
+
+## Configuration
+
+Environment variables, all optional: `SENTINEL_PORT` (4747), `SENTINEL_HOME`
+(`~/.local/share/sentinel`), `SENTINEL_PI_BIN` (`pi`), `SENTINEL_PROVIDER`
+(`opencode-go`), `SENTINEL_MODEL` (`deepseek-v4.1-flash`), `SENTINEL_THINKING`
+(`high`), `SENTINEL_CONCURRENCY` (4), `SENTINEL_TIMEOUT` (1800 seconds).
 
 ## Data model
 
@@ -169,6 +177,6 @@ sentinel/
   src/ui/       index.html
   skill/        SKILL.md          (symlinked into ~/.claude/skills/sentinel)
   systemd/      sentineld.service
-  test/
-  docs/superpowers/specs/
+  test/         fake-pi/ plus unit and integration tests
+  DESIGN.md README.md CONTRIBUTING.md LICENSE
 ```
