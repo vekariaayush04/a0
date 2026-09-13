@@ -35,10 +35,17 @@ export function startServer(d: Deps) {
         if (!existsSync(b.cwd)) return err("cwd does not exist");
         if (b.tier !== undefined && !Object.prototype.hasOwnProperty.call(d.tiers, b.tier)) return err("unknown tier");
         if (b.timeout !== undefined && !(typeof b.timeout === "number" && Number.isFinite(b.timeout) && b.timeout > 0)) return err("timeout must be a positive number");
+        let sessionTitle: string | undefined;
+        if (b.sessionTitle !== undefined) {
+          if (typeof b.sessionTitle !== "string") return err("sessionTitle must be a string");
+          const trimmed = b.sessionTitle.trim();
+          if (trimmed.length > 200) return err("sessionTitle must be at most 200 characters");
+          sessionTitle = trimmed || undefined;
+        }
         const model = b.model ?? (b.tier ? (d.tiers as any)[b.tier] : undefined) ?? d.defaults.model;
         const provider = b.provider ?? d.defaults.provider;
         const thinking = b.thinking ?? d.defaults.thinking;
-        try { return json(d.runner.submit({ ...b, provider, model, thinking }), 201); } catch (e: any) { return err(e.message); }
+        try { return json(d.runner.submit({ ...b, provider, model, thinking, sessionTitle }), 201); } catch (e: any) { return err(e.message); }
       }
       if (m === "GET" && p === "/api/events") return sse(d.bus, "*", null);
       if ((mt = p.match(/^\/api\/runs\/([^/]+)(?:\/(wait|result|events|cancel))?$/))) {

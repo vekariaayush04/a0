@@ -98,6 +98,23 @@ after a failure. Pi runs may also spawn pi-subagents at a different model
 (for example, a scout subagent at `muse-spark-1.3-contributor`) within a
 single run.
 
+### Session titles
+
+Every Claude session that dispatches a run gets a row in the UI's left
+rail, named after the git root of the first run's cwd (or its basename)
+by default. Pass `--session-title "<text>"` on a run — typically the
+first one for a session — to name it something more useful instead, for
+example:
+
+```bash
+sentinel run --title "Add pagination to /users" --brief-file brief.md \
+  --cwd ~/code/api --session-title "Paginate the users API" --wait
+```
+
+A later `--session-title` on another run in the same session renames it
+again; the run's own `--title` is unaffected. `GET /api/stats` reports
+daemon-wide and today's run/cost totals, and is what the UI's header uses.
+
 ## Configuration
 
 | Variable | Default | Meaning |

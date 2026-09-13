@@ -58,6 +58,13 @@ test("result --json <id> works with flag before the positional", async () => {
   expect(r.out).toBe("echo: y");
 });
 
+test("run --session-title X sets the session title, visible in status --json", async () => {
+  const r = await cli("run", "--title", "T", "--brief", "x", "--cwd", home, "--session", "cli-titled-sess", "--session-title", "X", "--wait");
+  expect(r.code).toBe(0);
+  const st = JSON.parse((await cli("status", "--session", "cli-titled-sess", "--json")).out);
+  expect(st.sessions.find((s: any) => s.id === "cli-titled-sess").title).toBe("X");
+});
+
 test("wait with multiple ids returns done runs in given order", async () => {
   const f = join(home, "brief2.md"); writeFileSync(f, "second thing");
   const a = JSON.parse((await cli("run", "--title", "A", "--brief", "alpha", "--cwd", home)).out);

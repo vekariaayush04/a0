@@ -134,6 +134,32 @@ test("GET /api/stats shape and counts after two fake-pi runs", async () => {
   expect(stats.runsToday).toBe(before.runsToday + 2);
 });
 
+test("POST /api/runs with sessionTitle is reflected in /api/sessions", async () => {
+  const r = await post("/api/runs", { sessionId: "s-titled", cwd: home, title: "T", brief: "titled", sessionTitle: "  My Custom Session  " });
+  expect(r.status).toBe(201);
+  const sessions = await (await fetch(`${url}/api/sessions`)).json();
+  const sess = sessions.find((s: any) => s.id === "s-titled");
+  expect(sess.title).toBe("My Custom Session");
+});
+
+test("sessionTitle over 200 chars is rejected", async () => {
+  const r = await post("/api/runs", { sessionId: "s-titled2", cwd: home, title: "T", brief: "x", sessionTitle: "a".repeat(201) });
+  expect(r.status).toBe(400);
+});
+
+test("events replayed via ?replay=1 carry numeric ts", async () => {
+  const run = await (await post("/api/runs", { sessionId: "s1", cwd: home, title: "T", brief: "ts-check" })).json();
+  await (await fetch(`${url}/api/runs/${run.id}/wait?timeout=5`)).json();
+  const text = await (await fetch(`${url}/api/runs/${run.id}/events?replay=1`)).text();
+  const chunks = text.split("\n\n").filter(c => c.startsWith("event: event"));
+  expect(chunks.length).toBeGreaterThan(0);
+  for (const c of chunks) {
+    const m = c.match(/^event: event\ndata: (.*)$/s);
+    const data = JSON.parse(m![1]);
+    expect(typeof data.ts).toBe("number");
+  }
+});
+
 test("tier resolution", async () => {
   const r1 = await post("/api/runs", { sessionId: "s1", cwd: home, title: "T", brief: "tier1", tier: "l1" });
   expect(r1.status).toBe(201);

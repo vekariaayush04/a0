@@ -57,7 +57,7 @@ Thin HTTP client used by the skill and by humans. All commands print JSON
 with `--json` (default when stdout is not a TTY).
 
 ```
-sentinel run --session <claudeSessionId> --cwd <dir> --title <t> [--brief-file <f> | --brief <text>] [--model m] [--tier l1|l2|l3] [--provider p] [--thinking l] [--wait] [--timeout s] [--json]
+sentinel run --session <claudeSessionId> --cwd <dir> --title <t> [--brief-file <f> | --brief <text>] [--model m] [--tier l1|l2|l3] [--provider p] [--thinking l] [--session-title <t>] [--wait] [--timeout s] [--json]
 sentinel wait <runId...>          # blocks until all given runs finish, prints results
 sentinel status [--session id]    # sessions and runs summary
 sentinel logs <runId> [--follow]  # events rendered as text
@@ -150,21 +150,43 @@ runs(id TEXT PK, session_id TEXT FK, title TEXT, cwd TEXT, provider TEXT,
 Status values: `queued`, `running`, `done`, `failed`, `cancelled`.
 Run ids are short, sortable (time-prefixed base36), so humans can type them.
 
+`cwd` on a session is set once, from the first run that ever touched it,
+and never overwritten by later runs in the same session. `title` is the
+explicit `sessionTitle` if one was ever given (on any run in the
+session — the latest one wins), else the dirname of the nearest ancestor
+of that first `cwd` containing a `.git` (walking up), else `basename(cwd)`.
+
+`GET /api/sessions` does not read the table directly: each session is
+joined with an aggregate over its runs — `runCount`, `runningCount`
+(status `running` or `queued`), `totalCost` (sum of `cost`), and `cwds`
+(distinct run cwds, oldest first) — computed at request time since
+sessions are few.
+
+Every event line appended to `events.jsonl` and published on the bus
+carries `ts` (epoch ms), stamped by the daemon the moment it parses the
+line off Pi's stdout — not whatever timestamp Pi itself may include.
+Replayed events carry the stored `ts`.
+
 ## HTTP API
 
 ```
-POST /api/runs                 body: {sessionId, cwd, title, brief, model?, provider?, thinking?, tier?, timeout?}
+POST /api/runs                 body: {sessionId, cwd, title, brief, model?, provider?, thinking?, tier?, timeout?, sessionTitle?}
 GET  /api/runs                 list all runs
 GET  /api/runs/:id
 GET  /api/runs/:id/wait?timeout=<s>   long-poll until terminal
 GET  /api/runs/:id/events      SSE: replay events.jsonl then live; ?replay=1 replays then sends `event: done` and closes without subscribing, regardless of status
 GET  /api/runs/:id/result
 POST /api/runs/:id/cancel
-GET  /api/sessions
+GET  /api/sessions             sessions with run aggregates, see Data model
 GET  /api/sessions/:id/runs
+GET  /api/stats                {running, queued, runsToday, costToday, totalRuns, totalCost, tiers}; "today" is since local midnight
 GET  /api/events               SSE: run status changes for list refresh
 GET  /                         UI
 ```
+
+`sessionTitle`, when given, is trimmed and capped at 200 characters (a
+longer one is a 400); it sets or overrides the session's title as of
+this run.
 
 Errors are JSON `{error: string}` with 4xx/5xx. The daemon binds to
 loopback only. Every non-GET request is checked for CSRF: a present

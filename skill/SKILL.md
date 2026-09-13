@@ -33,7 +33,9 @@ the UI groups your runs under this session.
    sentinel run --session <sessionId> --cwd <project> --title "<short title>" --brief-file <scratchpad>/brief-1-x.md --json
    sentinel run --session <sessionId> --cwd <project> --title "<short title>" --brief-file <scratchpad>/brief-2-y.md --json
    ```
-   Each prints a run JSON with an `id`.
+   Each prints a run JSON with an `id`. On the first dispatch of a session,
+   also pass `--session-title "<5-8 word summary of the user's task>"` so
+   the session reads clearly in the UI's session list.
 
    **Model tiers.** Sentinel has three tiers, configured in the daemon:
    - `--tier l1` (cheap, Muse Spark): the brief is mostly reading.

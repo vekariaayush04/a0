@@ -5,7 +5,7 @@ import type { Bus } from "./bus";
 import { parseLine, summarize, type PiEvent } from "./events";
 
 type Cfg = { home: string; piBin: string; concurrency: number; timeout: number };
-type Submit = { sessionId: string; cwd: string; title: string; brief: string; provider?: string; model?: string; thinking?: string; timeout?: number };
+type Submit = { sessionId: string; cwd: string; title: string; brief: string; provider?: string; model?: string; thinking?: string; timeout?: number; sessionTitle?: string };
 type Active = { proc: ReturnType<typeof Bun.spawn>; timer: ReturnType<typeof setTimeout>; killTimer: ReturnType<typeof setTimeout> | null; cancelled: boolean; timedOut: boolean };
 const MAX_BRIEF = 100_000;
 export const KILL_GRACE_MS = 5000;
@@ -24,7 +24,7 @@ export class Runner {
     const id = newRunId(); const dir = this.runDir(id);
     mkdirSync(join(dir, "pi-session"), { recursive: true });
     writeFileSync(join(dir, "brief.md"), i.brief);
-    this.store.touchSession(i.sessionId, i.cwd);
+    this.store.touchSession(i.sessionId, i.cwd, i.sessionTitle);
     const run = this.store.createRun({ id, sessionId: i.sessionId, title: i.title, cwd: i.cwd, provider: i.provider ?? "", model: i.model ?? "", thinking: i.thinking ?? "" });
     const timeout = typeof i.timeout === "number" && Number.isFinite(i.timeout) && i.timeout > 0 ? i.timeout : this.cfg.timeout;
     this.timeouts.set(id, timeout);
@@ -85,6 +85,7 @@ export class Runner {
       const events: PiEvent[] = []; let stderr = "";
       const pumpOut = this.readLines(proc.stdout as ReadableStream, line => {
         const e = parseLine(line); if (!e) return;
+        e.ts = Date.now();
         events.push(e); appendFileSync(join(dir, "events.jsonl"), JSON.stringify(e) + "\n");
         this.bus.publish({ runId: id, kind: "event", data: e });
       });
