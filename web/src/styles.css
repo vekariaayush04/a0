@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---- tokens ----------------------------------------------------------- */
+
+:root {
+  --bg: #fafafa;
+  --fg: #0a0a0a;
+  --accent: #0a84ff;
+  color-scheme: light;
+
+  --fg-2: color-mix(in srgb, var(--fg) 62%, transparent);
+  --fg-3: color-mix(in srgb, var(--fg) 40%, transparent);
+  --fg-4: color-mix(in srgb, var(--fg) 24%, transparent);
+  --line: color-mix(in srgb, var(--fg) 10%, transparent);
+  --hover: color-mix(in srgb, var(--fg) 5%, transparent);
+  --raised: color-mix(in srgb, var(--fg) 3%, var(--bg));
+}
+
+[data-theme="dark"] {
+  --bg: #000;
+  --fg: #fff;
+  color-scheme: dark;
+}
+
+/* ---- base ------------------------------------------------------------- */
+
+@layer base {
+  * {
+    border-color: var(--line);
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--fg) 16%, transparent);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--fg-4);
+    border-radius: 999px;
+  }
+}
+
+/* ---- motion ----------------------------------------------------------- */
+
+@keyframes sentinel-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.72);
+  }
+}
+
+.pulse {
+  animation: sentinel-pulse 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse {
+    animation: none;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

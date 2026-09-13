@@ -1,14 +1,47 @@
-import { existsSync, readFileSync } from "node:fs"; import { join } from "node:path";
+import { existsSync, readFileSync } from "node:fs"; import { extname, join } from "node:path";
 import type { Store, Run } from "./store"; import type { Runner } from "./runner"; import { isTerminal } from "./runner"; import type { Bus } from "./bus";
 import { buildRunTree, readSubagentTranscript, type RunTree } from "./tree";
 
 type Tiers = { l1: string; l2: string; l3: string };
 type Defaults = { provider: string; model: string; thinking: string };
-type Deps = { store: Store; runner: Runner; bus: Bus; port: number; uiPath: string; tiers: Tiers; defaults: Defaults };
+type Deps = { store: Store; runner: Runner; bus: Bus; port: number; uiPath: string; tiers: Tiers; defaults: Defaults; webDistPath?: string };
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json" } });
 const err = (msg: string, status = 400) => json({ error: msg }, status);
 
+const MIME: Record<string, string> = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".map": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".ico": "image/x-icon",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+  ".ttf": "font/ttf",
+  ".txt": "text/plain; charset=utf-8",
+};
+
+/** Serves a file under `<webDist>/assets`, with content-type by extension and
+ *  an immutable cache header for Vite's content-hashed filenames. */
+function serveAsset(webDist: string, relative: string) {
+  const assetsDir = join(webDist, "assets");
+  const filePath = join(assetsDir, relative);
+  if (!filePath.startsWith(assetsDir + "/") || !existsSync(filePath)) return err("not found", 404);
+  const headers: Record<string, string> = { "content-type": MIME[extname(filePath).toLowerCase()] ?? "application/octet-stream" };
+  if (/[-.][A-Za-z0-9_-]{8,}\.[A-Za-z0-9]+$/.test(relative)) headers["cache-control"] = "public, max-age=31536000, immutable";
+  return new Response(Bun.file(filePath), { headers });
+}
+
 export function startServer(d: Deps) {
+  const webDist = d.webDistPath ?? join(import.meta.dir, "../../web/dist");
+  const webIndex = join(webDist, "index.html");
   const treeCache = new Map<string, RunTree>();
   const runTree = (run: Run): RunTree => {
     if (!isTerminal(run.status)) return buildRunTree(run, d.runner.runDir(run.id), d.tiers);
@@ -27,7 +60,11 @@ export function startServer(d: Deps) {
         const port = server.port;
         if (origin && origin !== `http://127.0.0.1:${port}` && origin !== `http://localhost:${port}`) return err("forbidden origin", 403);
       }
-      if (m === "GET" && p === "/") return new Response(Bun.file(d.uiPath), { headers: { "content-type": "text/html; charset=utf-8" } });
+      if (m === "GET" && p === "/") {
+        const hasWeb = existsSync(webIndex);
+        return new Response(Bun.file(hasWeb ? webIndex : d.uiPath), { headers: { "content-type": "text/html; charset=utf-8" } });
+      }
+      if (m === "GET" && existsSync(webIndex) && p.startsWith("/assets/")) return serveAsset(webDist, p.slice("/assets/".length));
       if (m === "GET" && p === "/api/sessions") return json(d.store.listSessions());
       if (m === "GET" && p === "/api/stats") {
         const now = new Date();

@@ -8,7 +8,9 @@
   "scripts": {
     "dev": "bun --watch src/daemon/main.ts",
     "daemon": "bun src/daemon/main.ts",
-    "test": "bun test"
+    "test": "bun test",
+    "web:dev": "cd web && bun run dev",
+    "web:build": "cd web && bun run build"
   },
   "devDependencies": { "@types/bun": "latest" }
 }

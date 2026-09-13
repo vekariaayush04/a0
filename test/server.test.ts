@@ -1,5 +1,5 @@
 import { test, expect, beforeAll, afterAll } from "bun:test";
-import { mkdtempSync } from "node:fs"; import { tmpdir } from "node:os"; import { join } from "node:path";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs"; import { tmpdir } from "node:os"; import { join } from "node:path";
 import { Store } from "../src/daemon/store"; import { Bus } from "../src/daemon/bus"; import { Runner } from "../src/daemon/runner"; import { startServer } from "../src/daemon/server";
 let url: string, server: any, home: string;
 const tiers = { l1: "muse-spark-1.3-contributor", l2: "deepseek-v4.1-flash", l3: "glm-5.3" };
@@ -168,4 +168,39 @@ test("tier resolution", async () => {
 
   const r2 = await post("/api/runs", { sessionId: "s1", cwd: home, title: "T", brief: "tier9", tier: "l9" });
   expect(r2.status).toBe(400);
+});
+
+test("serves web dist when present, falls back to src/ui when missing", async () => {
+  const dist = mkdtempSync(join(tmpdir(), "sentinel-web-"));
+  mkdirSync(join(dist, "assets"));
+  writeFileSync(join(dist, "index.html"), '<!doctype html><html><head><title>Sentinel</title></head><body><script type="module" src="/assets/x.js"></script></body></html>');
+  writeFileSync(join(dist, "assets", "x.js"), "console.log('x')");
+  const store2 = new Store(":memory:"); const bus2 = new Bus();
+  const runner2 = new Runner(store2, bus2, { home, piBin: join(import.meta.dir, "fake-pi/pi"), concurrency: 1, timeout: 30 });
+  const deps = { store: store2, runner: runner2, bus: bus2, port: 0, uiPath: join(import.meta.dir, "../src/ui/index.html"), tiers, defaults };
+
+  const srv = startServer({ ...deps, webDistPath: dist });
+  try {
+    const base = `http://127.0.0.1:${srv.port}`;
+    const html = await (await fetch(base + "/")).text();
+    expect(html).toContain("/assets/x.js");
+    const asset = await fetch(base + "/assets/x.js");
+    expect(asset.status).toBe(200);
+    expect(asset.headers.get("content-type") ?? "").toContain("javascript");
+    expect(await asset.text()).toBe("console.log('x')");
+  } finally {
+    srv.stop(true);
+  }
+
+  // Missing dist: fall back to the legacy single-file UI, and do not expose assets.
+  const srv2 = startServer({ ...deps, webDistPath: join(dist, "missing") });
+  try {
+    const base = `http://127.0.0.1:${srv2.port}`;
+    const html = await (await fetch(base + "/")).text();
+    expect(html).toContain("Sentinel");
+    expect(html).not.toContain("/assets/x.js");
+    expect((await fetch(base + "/assets/x.js")).status).toBe(404);
+  } finally {
+    srv2.stop(true);
+  }
 });

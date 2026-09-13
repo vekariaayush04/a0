@@ -3,5 +3,7 @@ bun.lockb
 *.log
 .DS_Store
 dist/
+web/node_modules/
+web/dist/
 .env
 .superpowers/
