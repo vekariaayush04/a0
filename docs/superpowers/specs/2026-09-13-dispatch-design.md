@@ -37,9 +37,9 @@ editing briefs in the UI, OpenRouter (the stored key is dead).
     `stderr.log`, `result.md`, `pi-session/` (Pi's own session dir via
     `--session-dir`).
 - Spawns runs as
-  `pi -p --mode json --session-dir <runDir>/pi-session --provider <p> --model <m> --thinking <level> -- <brief>`
-  with `cwd` set to the run's working directory. The brief is passed as a
-  `@brief.md` file argument rather than inline to avoid shell length limits.
+  `pi -p --mode json --session-dir <runDir>/pi-session --provider <p> --model <m> --thinking <level> -- @brief.md`
+  with `cwd` set to the run's working directory. The brief is attached as a
+  file argument rather than inline to avoid argument length limits.
 - Parses each stdout line as a Pi event. `session` gives the Pi session id;
   `message_end` with role assistant gives text, usage and cost; tool call
   events are stored verbatim; `agent_end` plus process exit finalises the run.
