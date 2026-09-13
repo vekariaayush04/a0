@@ -4,3 +4,4 @@ bun.lockb
 .DS_Store
 dist/
 .env
+.superpowers/
