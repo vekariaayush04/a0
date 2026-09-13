@@ -82,6 +82,34 @@ test("cancel called synchronously after submit (before brief read resolves) stil
   expect(done.status).toBe("cancelled");
 });
 
+test("brief unreadable fails the run without hanging", async () => {
+  // Bun.file(...).text() reads its content synchronously enough that swapping
+  // brief.md for a directory right after submit() never wins the race (verified:
+  // the read already has the old bytes in hand by the time we'd replace it).
+  // Runner.readBrief() exists precisely so this can be tested deterministically
+  // instead: override it to reject like a real unreadable-file error would.
+  class FlakyRunner extends Runner {
+    protected override readBrief(): Promise<string> { return Promise.reject(new Error("EISDIR: illegal operation on a directory")); }
+  }
+  const r = new FlakyRunner(store, bus, { home, piBin: PI, concurrency: 1, timeout: 60 });
+  const run = r.submit(base());
+  const done = await r.waitFor(run.id, 5000);
+  expect(done.status).toBe("failed");
+  expect(done.error).toBe("brief unreadable: EISDIR: illegal operation on a directory");
+});
+
+test("cancelling a queued run clears its pending timeout", async () => {
+  process.env.FAKE_PI_SLEEP = "1";
+  try {
+    const r = mk({ concurrency: 1 });
+    const a = r.submit(base()); const b = r.submit(base());
+    expect(r.cancel(b.id)).toBe(true);
+    const done = await r.waitFor(b.id, 5000);
+    expect(done.status).toBe("cancelled");
+    await r.waitFor(a.id, 5000);
+  } finally { delete process.env.FAKE_PI_SLEEP; }
+}, 10000);
+
 test("double cancel on a running run does not throw and ends cancelled", async () => {
   process.env.FAKE_PI_SLEEP = "5";
   try {

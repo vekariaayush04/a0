@@ -1,5 +1,5 @@
 import { mkdirSync } from "node:fs"; import { join } from "node:path";
-import { loadConfig } from "../config"; import { Store } from "./store"; import { Bus } from "./bus"; import { Runner } from "./runner"; import { startServer } from "./server";
+import { loadConfig } from "../config"; import { Store } from "./store"; import { Bus } from "./bus"; import { Runner, KILL_GRACE_MS } from "./runner"; import { startServer } from "./server";
 const cfg = loadConfig(); mkdirSync(cfg.home, { recursive: true });
 const store = new Store(join(cfg.home, "sentinel.db"));
 const n = store.failInFlight("daemon restarted"); if (n) console.log(`marked ${n} in-flight run(s) failed`);
@@ -11,7 +11,7 @@ let shuttingDown = false;
 function shutdown() {
   if (shuttingDown) return; shuttingDown = true;
   runner.shutdown();
-  setTimeout(() => process.exit(0), 5000);
+  setTimeout(() => process.exit(0), KILL_GRACE_MS);
 }
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);

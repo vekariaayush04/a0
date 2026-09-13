@@ -29,6 +29,7 @@ export function startServer(d: Deps) {
         for (const k of ["sessionId", "cwd", "title", "brief"]) if (typeof b?.[k] !== "string" || !b[k]) return err(`missing ${k}`);
         if (!existsSync(b.cwd)) return err("cwd does not exist");
         if (b.tier !== undefined && !Object.prototype.hasOwnProperty.call(d.tiers, b.tier)) return err("unknown tier");
+        if (b.timeout !== undefined && !(typeof b.timeout === "number" && Number.isFinite(b.timeout) && b.timeout > 0)) return err("timeout must be a positive number");
         const model = b.model ?? (b.tier ? (d.tiers as any)[b.tier] : undefined) ?? d.defaults.model;
         const provider = b.provider ?? d.defaults.provider;
         const thinking = b.thinking ?? d.defaults.thinking;
@@ -38,9 +39,17 @@ export function startServer(d: Deps) {
       if ((mt = p.match(/^\/api\/runs\/([^/]+)(?:\/(wait|result|events|cancel))?$/))) {
         const id = mt[1], sub = mt[2]; const run = d.store.getRun(id); if (!run) return err("no such run", 404);
         if (m === "GET" && !sub) return json(run);
-        if (m === "GET" && sub === "wait") { const t = Math.min(3600, Number(u.searchParams.get("timeout") ?? 60)); return json(await d.runner.waitFor(id, t * 1000)); }
+        if (m === "GET" && sub === "wait") {
+          let t = Number(u.searchParams.get("timeout"));
+          if (!Number.isFinite(t) || t <= 0) t = 60;
+          t = Math.min(3600, t);
+          return json(await d.runner.waitFor(id, t * 1000));
+        }
         if (m === "GET" && sub === "result") return new Response(run.result ?? "", { headers: { "content-type": "text/plain; charset=utf-8" } });
-        if (m === "GET" && sub === "events") return sse(d.bus, id, join(d.runner.runDir(id), "events.jsonl"), isTerminal(run.status));
+        if (m === "GET" && sub === "events") {
+          const replay = u.searchParams.get("replay") === "1";
+          return sse(d.bus, id, join(d.runner.runDir(id), "events.jsonl"), replay || isTerminal(run.status));
+        }
         if (m === "POST" && sub === "cancel") return d.runner.cancel(id) ? json(d.store.getRun(id)) : err("run not active", 409);
       }
       return err("not found", 404);
@@ -55,7 +64,10 @@ function sse(bus: Bus, key: string, replayPath: string | null, alreadyDone = fal
     start(ctrl) {
       const send = (ev: string, data: unknown) => ctrl.enqueue(enc.encode(`event: ${ev}\ndata: ${JSON.stringify(data)}\n\n`));
       ctrl.enqueue(enc.encode(": connected\n\n")); // flush headers/first byte immediately so clients see the stream open
-      if (replayPath && existsSync(replayPath)) for (const l of readFileSync(replayPath, "utf8").split("\n")) if (l.trim()) send("event", JSON.parse(l));
+      if (replayPath && existsSync(replayPath)) for (const l of readFileSync(replayPath, "utf8").split("\n")) {
+        if (!l.trim()) continue;
+        try { send("event", JSON.parse(l)); } catch { /* skip malformed line */ }
+      }
       if (alreadyDone) { send("done", {}); ctrl.close(); return; }
       off = bus.subscribe(key, msg => {
         if (key === "*" && msg.kind !== "status") return; // global feed: status changes only (run list refresh), not per-token events

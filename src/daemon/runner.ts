@@ -8,6 +8,7 @@ type Cfg = { home: string; piBin: string; concurrency: number; timeout: number }
 type Submit = { sessionId: string; cwd: string; title: string; brief: string; provider?: string; model?: string; thinking?: string; timeout?: number };
 type Active = { proc: ReturnType<typeof Bun.spawn>; timer: ReturnType<typeof setTimeout>; killTimer: ReturnType<typeof setTimeout> | null; cancelled: boolean; timedOut: boolean };
 const MAX_BRIEF = 100_000;
+export const KILL_GRACE_MS = 5000;
 
 export class Runner {
   private active = new Map<string, Active>();
@@ -25,7 +26,8 @@ export class Runner {
     writeFileSync(join(dir, "brief.md"), i.brief);
     this.store.touchSession(i.sessionId, i.cwd);
     const run = this.store.createRun({ id, sessionId: i.sessionId, title: i.title, cwd: i.cwd, provider: i.provider ?? "", model: i.model ?? "", thinking: i.thinking ?? "" });
-    this.timeouts.set(id, i.timeout ?? this.cfg.timeout);
+    const timeout = typeof i.timeout === "number" && Number.isFinite(i.timeout) && i.timeout > 0 ? i.timeout : this.cfg.timeout;
+    this.timeouts.set(id, timeout);
     this.queue.push(id); this.publishStatus(run); this.pump();
     return run;
   }
@@ -33,7 +35,7 @@ export class Runner {
 
   cancel(id: string): boolean {
     const qi = this.queue.indexOf(id);
-    if (qi >= 0) { this.queue.splice(qi, 1); this.finish(id, { status: "cancelled", error: "cancelled before start" }); return true; }
+    if (qi >= 0) { this.queue.splice(qi, 1); this.timeouts.delete(id); this.finish(id, { status: "cancelled", error: "cancelled before start" }); return true; }
     if (this.starting.has(id)) { this.cancelRequested.add(id); return true; }
     const a = this.active.get(id); if (!a) return false;
     a.cancelled = true; this.kill(a); return true;
@@ -59,15 +61,19 @@ export class Runner {
     while (this.active.size + this.starting.size < this.cfg.concurrency && this.queue.length) this.start(this.queue.shift()!);
   }
 
+  /** Reads a run's brief off disk. Overridable in tests to deterministically simulate an unreadable brief. */
+  protected readBrief(path: string): Promise<string> {
+    return Bun.file(path).text();
+  }
+
   private start(id: string) {
     this.starting.add(id);
     const run = this.store.getRun(id)!; const dir = this.runDir(id);
-    const brief = Bun.file(join(dir, "brief.md"));
     const args = [this.cfg.piBin, "-p", "--mode", "json", "--session-dir", join(dir, "pi-session"),
       ...(run.provider ? ["--provider", run.provider] : []), ...(run.model ? ["--model", run.model] : []),
       ...(run.thinking ? ["--thinking", run.thinking] : []), "--"];
     let proc: ReturnType<typeof Bun.spawn>;
-    brief.text().then(text => {
+    this.readBrief(join(dir, "brief.md")).then(text => {
       this.starting.delete(id);
       if (this.cancelRequested.delete(id)) { this.finish(id, { status: "cancelled", error: "cancelled before start" }); this.pump(); return; }
       try { proc = Bun.spawn([...args, text], { cwd: run.cwd, stdout: "pipe", stderr: "pipe", env: { ...process.env } }); }
@@ -101,6 +107,11 @@ export class Runner {
         this.finish(id, { status: "failed", error: `internal: ${e?.message ?? String(e)}` });
         this.pump();
       });
+    }).catch((e: any) => {
+      this.starting.delete(id);
+      this.cancelRequested.delete(id);
+      this.finish(id, { status: "failed", error: `brief unreadable: ${e?.message ?? String(e)}` });
+      this.pump();
     });
   }
 
@@ -113,7 +124,7 @@ export class Runner {
   private kill(a: Active) {
     if (a.killTimer) return;
     try { a.proc.kill("SIGTERM"); } catch {}
-    a.killTimer = setTimeout(() => { try { a.proc.kill("SIGKILL"); } catch {} }, 5000);
+    a.killTimer = setTimeout(() => { try { a.proc.kill("SIGKILL"); } catch {} }, KILL_GRACE_MS);
   }
   private finish(id: string, patch: Partial<Run>) {
     const run = this.store.updateRun(id, { ...patch, ended: Date.now() });

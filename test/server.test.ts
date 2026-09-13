@@ -87,3 +87,39 @@ test("csrf: text/plain POST without Origin is rejected for content-type, not ori
   expect(r.status).toBe(415);
   expect((await r.json()).error).toBe("content-type must be application/json");
 });
+
+test("timeout validation: non-positive timeout is rejected", async () => {
+  const r = await post("/api/runs", { sessionId: "s1", cwd: home, title: "T", brief: "hi", timeout: 0 });
+  expect(r.status).toBe(400);
+  expect((await r.json()).error).toBe("timeout must be a positive number");
+});
+
+test("wait?timeout=abc falls back and returns terminal status for a finished run", async () => {
+  const run = await (await post("/api/runs", { sessionId: "s1", cwd: home, title: "T", brief: "quick" })).json();
+  await (await fetch(`${url}/api/runs/${run.id}/wait?timeout=5`)).json();
+  const w = await (await fetch(`${url}/api/runs/${run.id}/wait?timeout=abc`)).json();
+  expect(["done", "failed", "cancelled"]).toContain(w.status);
+});
+
+test("events?replay=1 returns quickly and ends with done even while running", async () => {
+  process.env.FAKE_PI_SLEEP = "3";
+  try {
+    const run = await (await post("/api/runs", { sessionId: "s1", cwd: home, title: "T", brief: "replay" })).json();
+    await Bun.sleep(200);
+    const start = Date.now();
+    const res = await fetch(`${url}/api/runs/${run.id}/events?replay=1`);
+    const text = await res.text();
+    expect(Date.now() - start).toBeLessThan(1000);
+    expect(text.trim().endsWith("event: done\ndata: {}")).toBe(true);
+  } finally { delete process.env.FAKE_PI_SLEEP; }
+});
+
+test("tier resolution", async () => {
+  const r1 = await post("/api/runs", { sessionId: "s1", cwd: home, title: "T", brief: "tier1", tier: "l1" });
+  expect(r1.status).toBe(201);
+  const run1 = await r1.json();
+  expect(run1.model).toBe("muse-spark-1.3-contributor");
+
+  const r2 = await post("/api/runs", { sessionId: "s1", cwd: home, title: "T", brief: "tier9", tier: "l9" });
+  expect(r2.status).toBe(400);
+});
