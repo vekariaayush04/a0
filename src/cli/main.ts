@@ -38,18 +38,15 @@ function jsonOut(v: unknown, force: boolean) {
   console.log(force || !process.stdout.isTTY ? JSON.stringify(v, null, 2) : pretty(v));
 }
 
-async function waitAll(ids: string[]) {
-  const out = [];
-  for (const id of ids) {
-    for (;;) {
-      const r = await (await api(`/api/runs/${id}/wait?timeout=60`)).json();
-      if (["done", "failed", "cancelled"].includes(r.status)) {
-        out.push(r);
-        break;
-      }
-    }
+async function waitOne(id: string) {
+  for (;;) {
+    const r = await (await api(`/api/runs/${id}/wait?timeout=60`)).json();
+    if (["done", "failed", "cancelled"].includes(r.status)) return r;
   }
-  return out;
+}
+
+async function waitAll(ids: string[]) {
+  return Promise.all(ids.map(waitOne));
 }
 
 function renderEvent(e: any): string | null {
@@ -88,7 +85,18 @@ async function runCommand() {
     wait: { type: "boolean" },
   });
   if (!v.title) die("--title is required");
-  const brief = v.brief ?? (v["brief-file"] ? await Bun.file(v["brief-file"]).text() : die("--brief or --brief-file is required"));
+  let brief: string;
+  if (v.brief !== undefined) {
+    brief = v.brief;
+  } else if (v["brief-file"]) {
+    try {
+      brief = await Bun.file(v["brief-file"]).text();
+    } catch {
+      die(`cannot read brief file: ${v["brief-file"]}`);
+    }
+  } else {
+    die("--brief or --brief-file is required");
+  }
   const body = {
     sessionId: v.session ?? process.env.CLAUDE_SESSION_ID ?? "manual",
     cwd: v.cwd ?? process.cwd(),
@@ -172,12 +180,12 @@ async function resultCommand() {
 }
 
 async function cancelCommand() {
-  const [id] = rest;
+  const { values: v, positionals: [id] } = opts({});
   if (!id) die("run id required");
-  jsonOut(await (await api(`/api/runs/${id}/cancel`, { method: "POST" })).json(), rest.includes("--json"));
+  jsonOut(await (await api(`/api/runs/${id}/cancel`, { method: "POST" })).json(), !!v.json);
 }
 
-(async () => {
+async function main() {
   switch (cmd) {
     case "run":
       await runCommand();
@@ -210,4 +218,10 @@ async function cancelCommand() {
       console.log(`sentinel <run|wait|status|logs|result|cancel|open|daemon|install>`);
       process.exit(cmd ? 1 : 0);
   }
-})();
+}
+
+try {
+  await main();
+} catch (e) {
+  die(e instanceof Error ? e.message : String(e));
+}

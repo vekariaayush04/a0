@@ -29,3 +29,31 @@ test("run --tier passes through to model", async () => {
   const run = JSON.parse(r.out);
   expect(run.model).toBe("muse-spark-1.3-contributor");
 });
+
+test("run --brief-file with nonexistent path errors with path in message", async () => {
+  const r = await cli("run", "--title", "T", "--brief-file", "/nonexistent/path");
+  expect(r.code).toBe(1);
+  const parsed = JSON.parse(r.err);
+  expect(parsed.error).toContain("/nonexistent/path");
+});
+
+test("unknown flag errors with option in message", async () => {
+  const r = await cli("status", "--bogus-flag");
+  expect(r.code).toBe(1);
+  const parsed = JSON.parse(r.err);
+  expect(parsed.error.toLowerCase()).toContain("bogus-flag");
+});
+
+test("wait with multiple ids returns done runs in given order", async () => {
+  const f = join(home, "brief2.md"); writeFileSync(f, "second thing");
+  const a = JSON.parse((await cli("run", "--title", "A", "--brief", "alpha", "--cwd", home)).out);
+  const b = JSON.parse((await cli("run", "--title", "B", "--brief-file", f, "--cwd", home)).out);
+  const r = await cli("wait", a.id, b.id);
+  expect(r.code).toBe(0);
+  const runs = JSON.parse(r.out);
+  expect(runs.length).toBe(2);
+  expect(runs[0].id).toBe(a.id);
+  expect(runs[1].id).toBe(b.id);
+  expect(runs[0].status).toBe("done");
+  expect(runs[1].status).toBe("done");
+});
