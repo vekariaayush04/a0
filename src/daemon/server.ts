@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs"; import { join } from "node:path";
-import type { Store } from "./store"; import type { Runner } from "./runner"; import { isTerminal } from "./runner"; import type { Bus } from "./bus";
+import type { Store, Run } from "./store"; import type { Runner } from "./runner"; import { isTerminal } from "./runner"; import type { Bus } from "./bus";
+import { buildRunTree, readSubagentTranscript, type RunTree } from "./tree";
 
 type Tiers = { l1: string; l2: string; l3: string };
 type Defaults = { provider: string; model: string; thinking: string };
@@ -8,6 +9,15 @@ const json = (data: unknown, status = 200) => new Response(JSON.stringify(data),
 const err = (msg: string, status = 400) => json({ error: msg }, status);
 
 export function startServer(d: Deps) {
+  const treeCache = new Map<string, RunTree>();
+  const runTree = (run: Run): RunTree => {
+    if (!isTerminal(run.status)) return buildRunTree(run, d.runner.runDir(run.id), d.tiers);
+    const cached = treeCache.get(run.id);
+    if (cached) return cached;
+    const tree = buildRunTree(run, d.runner.runDir(run.id), d.tiers);
+    treeCache.set(run.id, tree);
+    return tree;
+  };
   return Bun.serve({
     hostname: "127.0.0.1", port: d.port, idleTimeout: 255,
     async fetch(req, server) {
@@ -48,6 +58,23 @@ export function startServer(d: Deps) {
         try { return json(d.runner.submit({ ...b, provider, model, thinking, sessionTitle }), 201); } catch (e: any) { return err(e.message); }
       }
       if (m === "GET" && p === "/api/events") return sse(d.bus, "*", null);
+      if (m === "GET" && (mt = p.match(/^\/api\/runs\/([^/]+)\/tree$/))) {
+        const run = d.store.getRun(decodeURIComponent(mt[1])); if (!run) return err("no such run", 404);
+        return json(runTree(run));
+      }
+      if (m === "GET" && (mt = p.match(/^\/api\/sessions\/([^/]+)\/tree$/))) {
+        const id = decodeURIComponent(mt[1]);
+        const sessions = d.store.listSessions(); const session = sessions.find(s => s.id === id);
+        if (!session) return err("no such session", 404);
+        const runs = d.store.listRuns(id).slice().sort((a, b) => a.created - b.created);
+        return json({ kind: "session", id: session.id, title: session.title, runCount: session.runCount, totalCost: session.totalCost, children: runs.map(runTree) });
+      }
+      if (m === "GET" && (mt = p.match(/^\/api\/runs\/([^/]+)\/subagents\/(\d+)\/transcript$/))) {
+        const run = d.store.getRun(decodeURIComponent(mt[1])); if (!run) return err("no such run", 404);
+        const transcript = readSubagentTranscript(d.runner.runDir(run.id), Number(mt[2]));
+        if (!transcript) return err("no such subagent", 404);
+        return json(transcript);
+      }
       if ((mt = p.match(/^\/api\/runs\/([^/]+)(?:\/(wait|result|events|cancel))?$/))) {
         const id = mt[1], sub = mt[2]; const run = d.store.getRun(id); if (!run) return err("no such run", 404);
         if (m === "GET" && !sub) return json(run);
