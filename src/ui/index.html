@@ -137,6 +137,83 @@ body {
   text-transform: uppercase;
 }
 
+/* ---------- segmented control ---------- */
+.seg {
+  display: inline-flex; align-items: center; gap: 1px; flex: none;
+  border: 1px solid var(--line2); border-radius: 7px; padding: 1px; background: var(--bg);
+}
+.seg button {
+  all: unset; cursor: pointer; font-size: 11px; letter-spacing: -.005em;
+  padding: 2.5px 9px; border-radius: 5px; color: var(--f52);
+  transition: background var(--t), color var(--t);
+}
+.seg button:hover { color: var(--f90); }
+.seg button[aria-pressed=true] { background: var(--sel); color: var(--fg); }
+.seg button:focus-visible { outline: 1px solid var(--f38); outline-offset: 1px; }
+.headrow { display: flex; align-items: center; gap: 10px; }
+.headrow .title { flex: 1; min-width: 0; }
+
+/* ---------- tree ---------- */
+#tree { display: none; background: var(--panel); }
+body[data-view=tree] .app { grid-template-columns: var(--rail) minmax(0, 46fr) minmax(0, 54fr); }
+body[data-view=tree] #runs { display: none; }
+body[data-view=tree] #tree { display: flex; }
+.treescroll { overflow: auto; flex: 1; min-height: 0; padding: 4px 16px 28px; overscroll-behavior: contain; }
+.treescroll svg { display: block; }
+
+.tnode { cursor: pointer; }
+.tnode:focus { outline: none; }
+.tbox { fill: var(--bg); stroke: var(--line2); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.tnode:hover .tbox, .tnode:focus-visible .tbox { stroke: var(--f52); fill: var(--hover); }
+.tnode:focus-visible .tbox { stroke-dasharray: 3 2; }
+.tnode.sel .tbox { stroke: var(--fg); }
+.tnode.sel .tselbar { fill: var(--fg); }
+.tspine, .telbow { stroke: var(--f22); fill: none; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.tnode:hover .tspine, .tnode:hover .telbow, .tnode.sel .tspine, .tnode.sel .telbow { stroke: var(--f52); }
+.ttitle { fill: var(--f90); font: 500 12px var(--sans); letter-spacing: -.01em; }
+.tmeta { fill: var(--f38); font: 11px var(--mono); }
+.tsub { fill: var(--f52); font: 11px var(--mono); }
+.tpill { fill: none; stroke: var(--line2); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.tpilltext { fill: var(--f52); font: 9.5px var(--mono); letter-spacing: .04em; }
+.taxis { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.ttickline { stroke: var(--line); stroke-width: 1; stroke-dasharray: 2 4; vector-effect: non-scaling-stroke; }
+.tticktext { fill: var(--f22); font: 10px var(--mono); }
+.troot .tbox { fill: var(--panel); }
+
+.gl-done { fill: var(--f70); }
+.gl-queued { fill: none; stroke: var(--f38); stroke-width: 1.25; }
+.gl-cancelled { fill: var(--f22); }
+.gl-failed { fill: none; stroke: var(--f70); stroke-width: 1.25; }
+.gl-failed-x { stroke: var(--f70); stroke-width: 1; fill: none; }
+.gl-running { fill: var(--accent); animation: pulse 1.6s ease-in-out infinite; }
+.ttick { stroke: var(--f38); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.ttick.run { stroke: var(--accent); animation: pulse 1.6s ease-in-out infinite; }
+.ttickerr { stroke: var(--f70); stroke-width: 1; fill: none; }
+.thit { fill: transparent; }
+
+.ttip {
+  position: fixed; z-index: 30; pointer-events: none; opacity: 0;
+  background: var(--bg); border: 1px solid var(--line2); border-radius: 6px;
+  padding: 4px 8px; font: 11px var(--mono); color: var(--f90);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--fg) 8%, transparent);
+  transition: opacity 90ms linear; white-space: nowrap; max-width: 60vw; overflow: hidden; text-overflow: ellipsis;
+}
+.ttip.on { opacity: 1; }
+
+.skel { padding: 18px 4px; display: flex; flex-direction: column; gap: 10px; }
+.skel i { display: block; height: 40px; border-radius: 8px; background: var(--hover); border: 1px solid var(--line); animation: shim 1.4s ease-in-out infinite; }
+.skel i:nth-child(2) { width: 78%; margin-left: 22px; animation-delay: .12s; }
+.skel i:nth-child(3) { width: 62%; margin-left: 44px; height: 32px; animation-delay: .24s; }
+.skel i:nth-child(4) { width: 70%; margin-left: 22px; animation-delay: .36s; }
+@keyframes shim { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+
+.backlink { all: unset; cursor: pointer; font-size: 12px; color: var(--f52); transition: color var(--t); }
+.backlink:hover { color: var(--fg); }
+.backlink:focus-visible { outline: 1px solid var(--f38); outline-offset: 2px; border-radius: 4px; }
+.sec { flex: none; margin: 16px 28px 0; }
+.sec .k { font: 10px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--f38); margin-bottom: 5px; }
+.sec pre { border-left: 1px solid var(--line); padding-left: 13px; }
+
 .empty { padding: 34px 22px; color: var(--f38); font-size: 12.5px; line-height: 1.65; }
 #detail > .empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--f22); }
 #detail > .empty svg { opacity: .5; }
@@ -271,9 +348,13 @@ pre { white-space: pre-wrap; word-break: break-word; font: 12px/1.6 var(--mono);
 
 /* narrow */
 @media (max-width: 900px) {
-  .app { grid-template-columns: 1fr; }
-  .pane { display: none; border-right: 0; }
+  .app, body[data-view=tree] .app { grid-template-columns: minmax(0, 1fr); }
+  .pane, body[data-view=tree] #tree { display: none; }
   body[data-pane=sessions] #sessions, body[data-pane=runs] #runs, body[data-pane=detail] #detail { display: flex; }
+  body[data-view=tree][data-pane=runs] #runs { display: none; }
+  body[data-view=tree][data-pane=runs] #tree { display: flex; }
+  .treescroll { padding-left: 10px; padding-right: 10px; }
+  .sec { margin-left: 18px; margin-right: 18px; }
   body:not([data-pane=sessions]) #back { display: flex; }
   .dhead, .timeline, .log, .strip { padding-left: 18px; padding-right: 18px; }
   details.brief { margin-left: 18px; margin-right: 18px; }
@@ -312,9 +393,14 @@ pre { white-space: pre-wrap; word-break: break-word; font: 12px/1.6 var(--mono);
       <div class="phead pheadcol" id="runsHead"><span class="lbl">Runs</span></div>
       <div class="scroll" id="runList"></div>
     </div>
+    <div class="pane" id="tree">
+      <div class="phead pheadcol" id="treeHead"><span class="lbl">Tree</span></div>
+      <div class="treescroll" id="treeBody"></div>
+    </div>
     <div class="pane" id="detail"></div>
   </div>
 </div>
+<div class="ttip" id="ttip" role="tooltip"></div>
 
 <div class="overlay" id="help">
   <div class="card">
@@ -324,6 +410,7 @@ pre { white-space: pre-wrap; word-break: break-word; font: 12px/1.6 var(--mono);
       <dt>Enter</dt><dd>Go right (session → runs → detail)</dd>
       <dt>Esc</dt><dd>Go left / back</dd>
       <dt>c</dt><dd>Cancel the selected run</dd>
+      <dt>g</dt><dd>Toggle list / spawn tree</dd>
       <dt>t</dt><dd>Cycle theme — system, light, dark</dd>
       <dt>?</dt><dd>Toggle this panel</dd>
     </dl>
@@ -430,11 +517,28 @@ let focus = "sessions";
 let es = null;
 let esRunId = null;
 
+/* view: "list" | "tree" (the runs pane is replaced by the spawn tree) */
+let view = "list";
+try { const v = localStorage.getItem("sentinel.view"); if (v === "list" || v === "tree") view = v; } catch (_) {}
+
+/* ?mock=tree swaps in a hard-coded sample tree so the view can be developed and
+   screenshotted without a daemon. Unreachable unless the param is present. */
+let MOCK = false;
+try {
+  const q = new URLSearchParams(location.search);
+  MOCK = q.get("mock") === "tree";
+  const qv = q.get("view");
+  if (qv === "list" || qv === "tree") view = qv;
+  else if (MOCK) view = "tree";
+} catch (_) {}
+
 document.body.dataset.pane = "sessions";
 
 const setPane = p => {
   focus = p;
   document.body.dataset.pane = p;
+  // the tree measures the pane, which is 0-wide while hidden on narrow layouts
+  if (p === "runs" && view === "tree" && typeof renderTree === "function") renderTree();
 };
 
 /* ---------------- top bar chips ---------------- */
@@ -517,7 +621,7 @@ async function pickSession(id, opts) {
   selSession = id;
   if (!(opts && opts.stay)) setPane("runs");
   renderSessions();
-  if (changed) { runs = []; renderRuns(); }
+  if (changed) { runs = []; renderRuns(); if (view === "tree") loadTree(); }
   let next;
   try { next = await (await fetch(`/api/sessions/${encodeURIComponent(id)}/runs`)).json(); } catch (_) { return; }
   if (selSession !== id) return;
@@ -533,18 +637,52 @@ async function pickSession(id, opts) {
 
 const byCreated = (a, b) => (b.created || 0) - (a.created || 0);
 
-function renderRuns() {
-  const s = sessions.find(x => x.id === selSession);
-  const head = $("#runsHead");
-  if (s) {
-    const cwds = Array.isArray(s.cwds) ? s.cwds : [];
-    head.innerHTML =
-      `<span class="title">${esc(s.title || s.id)}</span>` +
-      (cwds.length > 1 ? `<span class="sub">${esc(cwds.map(shortPath).join("  ·  "))}</span>` : "");
-  } else {
-    head.innerHTML = '<span class="lbl">Runs</span>';
+function segControl() {
+  const seg = ce("div", "seg");
+  seg.setAttribute("role", "group");
+  seg.setAttribute("aria-label", "Runs view");
+  for (const [k, label] of [["list", "List"], ["tree", "Tree"]]) {
+    const b = ce("button");
+    b.type = "button";
+    b.textContent = label;
+    b.title = label + " view (g)";
+    b.setAttribute("aria-pressed", view === k ? "true" : "false");
+    b.onclick = () => setView(k);
+    seg.appendChild(b);
   }
+  return seg;
+}
 
+function renderHead(box) {
+  if (!box) return;
+  box.innerHTML = "";
+  const s = sessions.find(x => x.id === selSession);
+  const row = ce("div", "headrow");
+  const t = ce("span", "title");
+  t.textContent = s ? (s.title || s.id) : (view === "tree" ? "Spawn tree" : "Runs");
+  row.append(t, segControl());
+  box.appendChild(row);
+  const cwds = s && Array.isArray(s.cwds) ? s.cwds : [];
+  if (cwds.length > 1) {
+    const sub = ce("span", "sub");
+    sub.textContent = cwds.map(shortPath).join("  ·  ");
+    box.appendChild(sub);
+  }
+}
+
+function renderHeads() { renderHead($("#runsHead")); renderHead($("#treeHead")); }
+
+function setView(v) {
+  if (v !== "list" && v !== "tree") return;
+  view = v;
+  try { localStorage.setItem("sentinel.view", v); } catch (_) {}
+  document.body.dataset.view = v;
+  renderHeads();
+  if (v === "tree") loadTree();
+}
+
+function renderRuns() {
+  renderHeads();
   const list = $("#runList");
   if (!runs.length) {
     list.innerHTML = `<div class="empty">${selSession ? "No runs in this session" : "Select a session"}</div>`;
@@ -588,6 +726,8 @@ async function pickRun(id, opts) {
   if (!id) return;
   selRun = id;
   if (!(opts && opts.stay)) setPane("detail");
+  selNode = "run:" + id;
+  markTreeSel();
   renderRuns();
   try { location.hash = "run=" + encodeURIComponent(id); } catch (_) {}
   let r;
@@ -893,6 +1033,7 @@ function stream(id) {
     if (es !== src || selRun !== id) return;
     let r; try { r = JSON.parse(e.data); } catch (_) { return; }
     mergeRun(r);
+    if (isTerminal(r.status)) scheduleTree();
     if (r.id !== selRun) return;
     selRunObj = r;
     const sp = document.querySelector(".dmeta .glyph");
@@ -915,6 +1056,647 @@ function stream(id) {
   src.onerror = () => { /* EventSource retries on its own */ };
 }
 
+/* ---------------- spawn tree ---------------- */
+
+const SVGNS = "http://www.w3.org/2000/svg";
+const sv = (tag, cls) => { const n = document.createElementNS(SVGNS, tag); if (cls) n.setAttribute("class", cls); return n; };
+const at = (n, o) => { for (const k of Object.keys(o)) n.setAttribute(k, String(o[k])); return n; };
+const svText = (cls, x, y, s) => { const t = sv("text", cls); at(t, { x, y }); t.textContent = s; return t; };
+
+/* geometry */
+const AX_W = 58;          // time axis gutter
+const COL_GAP = 24;
+const INDENT = 28;
+const RUN_H = 46;
+const SUB_H = 42;
+const PAD_X = 11;
+const SPINE_DX = 13;
+const ROOT_GAP = 30;
+const CH12 = 7, CH11 = 6.3, CH95 = 5.6;
+
+const treeState = { data: null, err: null, loading: false, sessionId: null };
+let selNode = null;
+
+const modelShort = m => {
+  let s = String(m || "");
+  const i = s.lastIndexOf("/");
+  if (i >= 0) s = s.slice(i + 1);
+  return clip(s, 26);
+};
+
+/* ---- mock (only via ?mock=tree) ---- */
+function mockTree() {
+  const T = 1789323000000;
+  const tools = (defs, at0) => defs.map(d => ({ name: d[0], target: d[1], t0: at0 + d[2], t1: at0 + d[3], err: !!d[4] }));
+  const runA = {
+    kind: "run", id: "run-a", title: "Probe: subagent fan-out", status: "done",
+    model: "opencode-go/kimi-k2.5", tier: "l2", cost: 0.0412,
+    started: T, ended: T + 194000,
+    tools: tools([["read", "README.md", 3000, 3400], ["subagent", "scout", 12000, 96000],
+      ["write", "SUMMARY.md", 120000, 120180], ["bash", "git status", 150000, 151400, true]], T),
+    children: [{
+      kind: "subagent", id: "sub-a0", index: 0, agent: "scout",
+      model: "opencode-go/deepseek-v4.1-flash:low", task: "List the .py files and summarize each in one line.",
+      status: "done", cost: 0.0015, turns: 4, started: T + 12200, ended: T + 95800, spawnedAt: T + 12000,
+      tools: tools([["list", ".", 800, 1100], ["read", "train.py", 9000, 9260],
+        ["read", "serve.py", 26000, 26210], ["grep", "def main", 52000, 52900]], T + 12200),
+      children: [],
+    }],
+  };
+  const runB = {
+    kind: "run", id: "run-b", title: "Audit config loader for stale defaults", status: "failed",
+    model: "opencode-go/deepseek-v4.1-flash", tier: "l1", cost: 0.0038,
+    started: T + 9000, ended: T + 88000,
+    tools: tools([["read", "config.ts", 2000, 2300], ["bash", "bun test", 30000, 61000, true]], T + 9000),
+    children: [],
+  };
+  const runC = {
+    kind: "run", id: "run-c", title: "Draft release notes for 0.4", status: "running",
+    model: "anthropic/claude-opus-4", tier: "l3", cost: 0.1180,
+    started: T + 240000, ended: null,
+    tools: tools([["read", "CHANGELOG.md", 2000, 2400], ["grep", "feat:", 18000, 18900]], T + 240000),
+    children: [],
+  };
+  runC.tools.push({ name: "write", target: "NOTES.md", t0: T + 300000, t1: null, err: false });
+  return {
+    kind: "session", id: selSession || "mock-session", title: "sentinel — spawn tree",
+    runCount: 3, totalCost: 0.163, children: [runA, runB, runC],
+  };
+}
+
+function mockTranscript() {
+  return {
+    agent: "scout", model: "opencode-go/deepseek-v4.1-flash:low",
+    input: "List the .py files in this directory and summarize what each does in one line.",
+    output: "- train.py — fits the ranking model and writes checkpoints.\n- serve.py — small HTTP wrapper around the checkpoint.\n- util.py — shared path and logging helpers.",
+    records: [
+      { ts: 1, role: "assistant", text: "Listing the directory first." },
+      { ts: 2, role: "assistant", tool: { name: "list", args: { path: "." }, result: "train.py\nserve.py\nutil.py", err: false } },
+      { ts: 3, role: "assistant", text: "Three files. Reading each to summarize." },
+      { ts: 4, role: "assistant", tool: { name: "read", args: { path: "train.py" }, result: "import torch\n…", err: false } },
+      { ts: 5, role: "assistant", text: "Done — writing the summary back to the parent." },
+    ],
+  };
+}
+
+/* ---- fetch ---- */
+let treeTimer = null;
+function scheduleTree() {
+  if (view !== "tree") return;
+  if (treeTimer) return;
+  treeTimer = setTimeout(() => { treeTimer = null; loadTree(true); }, 500);
+}
+
+async function loadTree(quiet) {
+  if (MOCK) {
+    treeState.data = mockTree();
+    treeState.err = null;
+    treeState.loading = false;
+    renderTree();
+    return;
+  }
+  const id = selSession;
+  if (!id) { treeState.data = null; treeState.err = null; renderTree(); return; }
+  if (!quiet && treeState.sessionId !== id) { treeState.data = null; treeState.loading = true; renderTree(); }
+  treeState.sessionId = id;
+  let res;
+  try { res = await fetch(`/api/sessions/${encodeURIComponent(id)}/tree`); } catch (_) {
+    treeState.loading = false; treeState.err = "offline"; renderTree(); return;
+  }
+  if (selSession !== id) return;
+  treeState.loading = false;
+  if (res.status === 404) { treeState.err = "unsupported"; treeState.data = null; renderTree(); return; }
+  if (!res.ok) { treeState.err = "offline"; renderTree(); return; }
+  try { treeState.data = await res.json(); treeState.err = null; } catch (_) { treeState.err = "offline"; }
+  renderTree();
+}
+
+/* ---- elastic time scale: proportional, but clamped so nothing collapses or blows up ---- */
+function makeScale(times) {
+  const uniq = Array.from(new Set(times.filter(Number.isFinite))).sort((a, b) => a - b);
+  if (!uniq.length) return { y: () => 0, height: 0 };
+  const span = uniq[uniq.length - 1] - uniq[0];
+  const k = span > 0 ? 700 / span : 0;
+  const pts = [];
+  let y = 0;
+  for (let i = 0; i < uniq.length; i++) {
+    if (i) y += Math.max(4, Math.min(150, (uniq[i] - uniq[i - 1]) * k));
+    pts.push({ t: uniq[i], y });
+  }
+  const y0 = pts[0], y1 = pts[pts.length - 1];
+  return {
+    height: y1.y,
+    y(t) {
+      if (!Number.isFinite(t)) return y0.y;
+      if (t <= y0.t) return y0.y;
+      if (t >= y1.t) return y1.y;
+      let lo = 0, hi = pts.length - 1;
+      while (hi - lo > 1) { const m = (lo + hi) >> 1; if (pts[m].t <= t) lo = m; else hi = m; }
+      const a = pts[lo], b = pts[hi];
+      const f = b.t === a.t ? 0 : (t - a.t) / (b.t - a.t);
+      return a.y + f * (b.y - a.y);
+    },
+  };
+}
+
+const nodeStart = n => Number(n.kind === "subagent" ? (n.spawnedAt ?? n.started) : (n.started ?? n.created)) || 0;
+const nodeEnd = n => Number(n.ended) || Date.now();
+
+function collectTimes(n, out) {
+  out.push(nodeStart(n), nodeEnd(n));
+  for (const t of (n.tools || [])) { if (Number.isFinite(Number(t.t0))) out.push(Number(t.t0)); }
+  for (const c of (n.children || [])) collectTimes(c, out);
+  return out;
+}
+
+/* join what fits, dropping trailing parts rather than cutting a word in half */
+function fitJoin(parts, maxChars) {
+  const p = parts.filter(Boolean);
+  for (let i = p.length; i > 0; i--) {
+    const s = p.slice(0, i).join(" · ");
+    if (!Number.isFinite(maxChars) || s.length <= maxChars) return s;
+  }
+  return clip(p[0] || "", maxChars || 12);
+}
+const runParts = n => [dur(n) || (n.status === "running" ? "running" : ""), n.cost ? money(n.cost, 4) : ""];
+const subParts = n => [money(n.cost, 4), (Number(n.turns) || 0) + " turns", dur(n)];
+const runMeta = n => fitJoin(runParts(n), Infinity);
+const subMeta = n => fitJoin(subParts(n), Infinity);
+
+function measure(n) {
+  if (n.kind === "subagent") {
+    const name = clip(n.agent || "subagent", 22);
+    const mdl = modelShort(n.model);
+    const r1 = 16 + name.length * CH12 + 8 + mdl.length * CH11;
+    const r2 = 16 + subMeta(n).length * CH11;
+    n._w = Math.max(150, Math.min(420, Math.ceil(Math.max(r1, r2)) + PAD_X * 2));
+    n._h = SUB_H;
+  } else {
+    const title = clip(n.title || n.id, 28);
+    const tier = n.tier || "custom";
+    const pillW = tier.length * CH95 + 12;
+    const r1 = 16 + title.length * CH12 + 9 + pillW;
+    const r2 = 16 + runMeta(n).length * CH11;
+    n._w = Math.max(170, Math.min(460, Math.ceil(Math.max(r1, r2)) + PAD_X * 2));
+    n._h = RUN_H;
+  }
+  const kids = n.children || [];
+  for (const c of kids) measure(c);
+  if (kids.length > 1) { const w = Math.max(...kids.map(c => c._w)); for (const c of kids) c._w = w; }
+  n._subW = Math.max(n._w, ...(n.children || []).map(c => INDENT + c._subW), 0);
+  return n;
+}
+
+function place(n, S, minTop) {
+  n._top = Math.max(S.y(nodeStart(n)), minTop || 0);
+  n._end = Math.max(S.y(nodeEnd(n)), n._top);
+  n._spineEnd = Math.max(n._end, n._top + n._h + 14);
+  let bottom = Math.max(n._top + n._h, n._spineEnd);
+  // children never rise into the parent's box, and siblings never collide
+  let childMin = n._top + n._h + 12;
+  for (const c of (n.children || [])) {
+    bottom = Math.max(bottom, place(c, S, childMin));
+    childMin = c._bottom + 14;
+    n._spineEnd = Math.max(n._spineEnd, c._top + c._h / 2);
+  }
+  bottom = Math.max(bottom, n._spineEnd);
+  n._bottom = bottom;
+  return bottom;
+}
+
+function assignX(n, x) {
+  n._x = x;
+  for (const c of (n.children || [])) assignX(c, x + INDENT);
+}
+
+function clampW(n, right) {
+  n._w = Math.max(120, Math.min(n._w, right - n._x));
+  for (const c of (n.children || [])) clampW(c, right);
+}
+
+const fitChars = (w, reserved, per) => Math.max(3, Math.floor((w - reserved) / per));
+
+/* ---- glyph ---- */
+function glyph(cx, cy, status) {
+  const g = sv("g");
+  if (status === "cancelled") {
+    g.appendChild(at(sv("rect", "gl-cancelled"), { x: cx - 4, y: cy - .75, width: 8, height: 1.5 }));
+    return g;
+  }
+  if (status === "failed") {
+    g.appendChild(at(sv("circle", "gl-failed"), { cx, cy, r: 4 }));
+    g.appendChild(at(sv("path", "gl-failed-x"), { d: `M${cx - 2},${cy - 2}L${cx + 2},${cy + 2}M${cx + 2},${cy - 2}L${cx - 2},${cy + 2}` }));
+    return g;
+  }
+  const cls = status === "running" ? "gl-running" : status === "queued" ? "gl-queued" : "gl-done";
+  g.appendChild(at(sv("circle", cls), { cx, cy, r: status === "queued" ? 3.6 : 4 }));
+  return g;
+}
+
+/* ---- tooltip ---- */
+const tip = $("#ttip");
+let tipTimer = null;
+function showTip(e, text) {
+  tip.textContent = text;
+  tip.classList.add("on");
+  moveTip(e);
+}
+function moveTip(e) {
+  const x = Math.min(e.clientX + 12, window.innerWidth - tip.offsetWidth - 10);
+  const y = Math.max(6, e.clientY - tip.offsetHeight - 10);
+  tip.style.left = x + "px";
+  tip.style.top = y + "px";
+}
+function hideTip() { tip.classList.remove("on"); if (tipTimer) { clearTimeout(tipTimer); tipTimer = null; } }
+
+/* ---- node drawing ---- */
+function nodeKey(n, ctx) {
+  return n.kind === "subagent" ? "sub:" + ctx.runId + ":" + (Number(n.index) || 0) : "run:" + n.id;
+}
+
+function drawNode(root, n, ctx, S) {
+  const g = sv("g", "tnode" + (n.kind === "subagent" ? " tsubnode" : ""));
+  g.setAttribute("role", "button");
+  g.setAttribute("tabindex", "0");
+  const key = nodeKey(n, ctx);
+  g.dataset.key = key;
+  if (key === selNode) g.setAttribute("class", g.getAttribute("class") + " sel");
+
+  const x = n._x, y = n._top, w = n._w, h = n._h;
+  const sx = x + SPINE_DX;
+
+  // elbow from the parent's extent line
+  if (ctx.parent) {
+    const px = ctx.parent._x + SPINE_DX;
+    const yc = y + h / 2;
+    const r = 7;
+    const p = sv("path", "telbow");
+    p.setAttribute("d", `M${px},${ctx.parent._top + ctx.parent._h}V${yc - r}Q${px},${yc} ${px + r},${yc}H${x}`);
+    g.appendChild(p);
+  }
+
+  // extent line
+  const spineTop = y + h;
+  if (n._spineEnd > spineTop + 1) {
+    g.appendChild(at(sv("line", "tspine"), { x1: sx, y1: spineTop, x2: sx, y2: n._spineEnd }));
+  }
+
+  // box
+  const box = at(sv("rect", "tbox"), { x, y, width: w, height: h, rx: 9 });
+  g.appendChild(box);
+  if (key === selNode) g.appendChild(at(sv("rect", "tselbar"), { x: x + 1, y: y + 9, width: 2, height: h - 18, rx: 1 }));
+
+  g.appendChild(glyph(x + PAD_X + 4, y + 16, n.status || "done"));
+
+  if (n.kind === "subagent") {
+    const tx = x + PAD_X + 16;
+    const name = clip(n.agent || "subagent", Math.min(22, fitChars(w, PAD_X * 2 + 16, CH12)));
+    g.appendChild(svText("ttitle", tx, y + 20, name));
+    const mx = tx + name.length * CH12 + 8;
+    const mdlRoom = fitChars(w, mx - x + PAD_X, CH11);
+    if (mdlRoom >= 6) g.appendChild(svText("tmeta", mx, y + 20, clip(modelShort(n.model), mdlRoom)));
+    g.appendChild(svText("tmeta", tx, y + 34, fitJoin(subParts(n), fitChars(w, PAD_X * 2 + 16, CH11))));
+  } else {
+    const tier0 = n.tier || "custom";
+    const title = clip(n.title || n.id, Math.min(28, fitChars(w, PAD_X * 2 + 16 + 9 + tier0.length * CH95 + 12, CH12)));
+    const tx = x + PAD_X + 16;
+    g.appendChild(svText("ttitle", tx, y + 20, title));
+    const tier = n.tier || "custom";
+    const pillW = tier.length * CH95 + 12;
+    const px0 = Math.max(tx + title.length * CH12 + 9, x + w - PAD_X - pillW);
+    g.appendChild(at(sv("rect", "tpill"), { x: px0, y: y + 10, width: pillW, height: 14, rx: 7 }));
+    g.appendChild(svText("tpilltext", px0 + 6, y + 20, tier));
+    g.appendChild(svText("tmeta", tx, y + 36, fitJoin(runParts(n), fitChars(w, PAD_X * 2 + 16, CH11))));
+  }
+
+  // tool ticks along the extent line
+  for (const t of (n.tools || [])) {
+    const t0 = Number(t.t0);
+    if (!Number.isFinite(t0)) continue;
+    const ty = Math.max(spineTop + 3, Math.min(n._spineEnd - 1, S.y(t0)));
+    const running = t.t1 == null;
+    if (t.err) {
+      g.appendChild(at(sv("circle", "ttickerr"), { cx: sx, cy: ty, r: 3.4 }));
+      g.appendChild(at(sv("path", "ttickerr"), { d: `M${sx - 1.6},${ty - 1.6}L${sx + 1.6},${ty + 1.6}M${sx + 1.6},${ty - 1.6}L${sx - 1.6},${ty + 1.6}` }));
+    } else {
+      g.appendChild(at(sv("line", "ttick" + (running ? " run" : "")), { x1: sx - 4, y1: ty, x2: sx + 4, y2: ty }));
+    }
+    const label = (t.name || "tool") + (t.target ? " " + clip(t.target, 26) : "") +
+      (t.t1 != null && Number.isFinite(Number(t.t1)) ? " · " + fmtMs(Number(t.t1) - t0) : " · running");
+    const hit = at(sv("rect", "thit"), { x: sx - 8, y: ty - 5, width: 16, height: 10 });
+    hit.addEventListener("mouseenter", e => showTip(e, label));
+    hit.addEventListener("mousemove", moveTip);
+    hit.addEventListener("mouseleave", hideTip);
+    g.appendChild(hit);
+  }
+
+  const open = () => {
+    selNode = key;
+    markTreeSel();
+    if (n.kind === "subagent") openSubagent(ctx.runId, Number(n.index) || 0, n);
+    else pickRun(n.id, { stay: window.innerWidth > 900 });
+  };
+  g.addEventListener("click", open);
+  g.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); open(); }
+  });
+  g.addEventListener("mouseleave", hideTip);
+
+  root.appendChild(g);
+  for (const c of (n.children || [])) drawNode(root, c, { runId: ctx.runId, parent: n }, S);
+}
+
+function markTreeSel() {
+  const body = $("#treeBody");
+  if (!body) return;
+  body.querySelectorAll(".tnode").forEach(g => {
+    g.classList.toggle("sel", g.dataset.key === selNode);
+  });
+}
+
+function tickStep(span) {
+  const M = 60000;
+  for (const s of [M, 2 * M, 5 * M, 10 * M, 15 * M, 30 * M, 60 * M, 120 * M, 360 * M, 720 * M, 1440 * M]) {
+    if (span / s <= 8) return s;
+  }
+  return 1440 * M;
+}
+
+function renderTree() {
+  const body = $("#treeBody");
+  if (!body) return;
+  const keepScroll = body.scrollTop;
+  body.innerHTML = "";
+  hideTip();
+
+  if (treeState.err === "unsupported") {
+    body.innerHTML = '<div class="empty"><strong>Tree view needs the updated daemon</strong>' +
+      'This daemon does not serve <code>/api/sessions/:id/tree</code> yet. Switch back to <code>List</code>, or restart Sentinel on a newer build.</div>';
+    return;
+  }
+  if (treeState.err) {
+    body.innerHTML = '<div class="empty"><strong>Could not load the tree</strong>The daemon did not answer. It will retry on the next update.</div>';
+    return;
+  }
+  if (treeState.loading) {
+    body.innerHTML = '<div class="skel"><i></i><i></i><i></i><i></i></div>';
+    return;
+  }
+  const data = treeState.data;
+  if (!data) {
+    body.innerHTML = '<div class="empty">Select a session</div>';
+    return;
+  }
+  const runsIn = (data.children || []).filter(Boolean);
+  if (!runsIn.length) {
+    body.innerHTML = '<div class="empty">No runs yet</div>';
+    return;
+  }
+
+  const times = [];
+  for (const r of runsIn) collectTimes(r, times);
+  const S = makeScale(times);
+  for (const r of runsIn) measure(r);
+
+  // runs whose time ranges overlap sit side by side (greedy column assignment)
+  const order = runsIn.slice().sort((a, b) => nodeStart(a) - nodeStart(b));
+  const colEnd = [];
+  for (const r of order) {
+    let c = colEnd.findIndex(e => e <= nodeStart(r));
+    if (c < 0) { c = colEnd.length; colEnd.push(0); }
+    r._col = c;
+    colEnd[c] = nodeEnd(r);
+  }
+  // then lay out each column top to bottom, never letting boxes touch
+  const colBottom = colEnd.map(() => 0);
+  for (const r of order) {
+    place(r, S, colBottom[r._col]);
+    colBottom[r._col] = r._bottom + 18;
+  }
+
+  // root session node
+  const rootTitle = clip(data.title || data.id, 30);
+  const rootSub = (Number(data.runCount) || runsIn.length) + " runs · " + money(data.totalCost, 3);
+  const rootW = Math.max(190, Math.ceil(Math.max(rootTitle.length * CH12, rootSub.length * CH11)) + PAD_X * 2 + 4);
+  const ROOT_H = 44;
+  const yOff = ROOT_H + ROOT_GAP;
+
+  // one width per column: right edges line up, which reads far calmer than ragged boxes
+  const nodeW = colEnd.map(() => 0);
+  for (const r of order) nodeW[r._col] = Math.max(nodeW[r._col], r._w);
+  for (const r of order) { r._w = nodeW[r._col]; r._subW = Math.max(r._subW, r._w); }
+  const colW = colEnd.map(() => 0);
+  for (const r of order) colW[r._col] = Math.max(colW[r._col], r._subW);
+
+  // prefer fitting the pane: squeeze wide columns (text ellipsizes) before scrolling
+  const availW = Math.max(300, (body.clientWidth || 520) - 26);
+  const totalW = () => AX_W + 18 + colW.reduce((a, b) => a + b, 0) + COL_GAP * (colW.length - 1) + 10;
+  if (totalW() > availW) {
+    const floorW = 156;
+    const slack = colW.reduce((a, w) => a + Math.max(0, w - floorW), 0);
+    if (slack > 0) {
+      const f = Math.max(0, 1 - (totalW() - availW) / slack);
+      for (let i = 0; i < colW.length; i++) colW[i] = Math.round(floorW + Math.max(0, colW[i] - floorW) * f);
+    }
+  }
+
+  const colX = [];
+  let cx = AX_W + 18;
+  for (let i = 0; i < colW.length; i++) { colX.push(cx); cx += colW[i] + COL_GAP; }
+  for (const r of order) { assignX(r, colX[r._col]); clampW(r, colX[r._col] + colW[r._col]); }
+  for (const r of order) { r._top += yOff; r._end += yOff; r._spineEnd += yOff; r._bottom += yOff; shiftKids(r, yOff); }
+
+  const width = Math.max(cx + 8, AX_W + rootW + 30);
+  const height = Math.max(...order.map(r => r._bottom)) + 26;
+
+  const svg = sv("svg");
+  at(svg, { width, height, viewBox: `0 0 ${width} ${height}` });
+  svg.setAttribute("role", "tree");
+  svg.setAttribute("aria-label", "Spawn tree");
+
+  // time axis + ticks
+  const t0 = Math.min(...times), t1 = Math.max(...times);
+  const axisTop = yOff - 10, axisBot = height - 14;
+  svg.appendChild(at(sv("line", "taxis"), { x1: AX_W, y1: axisTop, x2: AX_W, y2: axisBot }));
+  const step = tickStep(Math.max(1, t1 - t0));
+  let seen = "";
+  for (let t = Math.ceil(t0 / step) * step; t <= t1 + 1; t += step) {
+    const y = S.y(t) + yOff;
+    const lbl = localTime(t);
+    if (lbl === seen) continue;
+    seen = lbl;
+    svg.appendChild(at(sv("line", "ttickline"), { x1: AX_W + 1, y1: y, x2: width - 4, y2: y }));
+    const tx = svText("tticktext", AX_W - 8, y + 3.5, lbl);
+    tx.setAttribute("text-anchor", "end");
+    svg.appendChild(tx);
+  }
+
+  // root node
+  const rg = sv("g", "tnode troot");
+  rg.setAttribute("role", "button");
+  rg.setAttribute("tabindex", "0");
+  rg.dataset.key = "session:" + data.id;
+  const rx0 = AX_W + 18;
+  rg.appendChild(at(sv("rect", "tbox"), { x: rx0, y: 0, width: rootW, height: ROOT_H, rx: 10 }));
+  rg.appendChild(svText("ttitle", rx0 + PAD_X, 19, rootTitle));
+  rg.appendChild(svText("tmeta", rx0 + PAD_X, 34, rootSub));
+  svg.appendChild(rg);
+  // stems from the session down to each column's first run
+  const firstPerCol = new Map();
+  for (const r of order) if (!firstPerCol.has(r._col)) firstPerCol.set(r._col, r);
+  for (const [, r] of firstPerCol) {
+    const p = sv("path", "telbow");
+    const cxs = rx0 + 14, tgt = r._x + SPINE_DX;
+    const mid = ROOT_H + 14;
+    p.setAttribute("d", `M${cxs},${ROOT_H}V${mid}H${tgt}V${r._top}`);
+    svg.appendChild(p);
+  }
+
+  for (const r of order) drawNode(svg, r, { runId: r.id, parent: null }, S);
+
+  body.appendChild(svg);
+  body.scrollTop = keepScroll;
+}
+
+function shiftKids(n, dy) {
+  for (const c of (n.children || [])) {
+    c._top += dy; c._end += dy; c._spineEnd += dy; c._bottom += dy;
+    shiftKids(c, dy);
+  }
+}
+
+/* ---------------- subagent detail ---------------- */
+
+async function openSubagent(runId, index, node) {
+  closeStream();
+  if (!(window.innerWidth > 900)) setPane("detail");
+  const pane = $("#detail");
+  pane.innerHTML = '<div class="empty">Loading subagent…</div>';
+  let data = null;
+  if (MOCK) data = mockTranscript();
+  else {
+    try {
+      const res = await fetch(`/api/runs/${encodeURIComponent(runId)}/subagents/${encodeURIComponent(index)}/transcript`);
+      if (res.status === 404) {
+        pane.innerHTML = '<div class="empty"><strong>Transcript unavailable</strong>The daemon has no transcript for this subagent.</div>';
+        return;
+      }
+      data = await res.json();
+    } catch (_) {
+      pane.innerHTML = '<div class="empty"><strong>Transcript unavailable</strong>The daemon did not answer.</div>';
+      return;
+    }
+  }
+  renderSubagent(runId, index, node, data || {});
+}
+
+function renderSubagent(runId, index, node, data) {
+  const pane = $("#detail");
+  pane.innerHTML = "";
+  const wrap = ce("div", "dwrap");
+
+  const head = ce("div", "dhead");
+  const back = ce("button", "backlink");
+  back.type = "button";
+  back.textContent = "← back to run";
+  back.onclick = () => { selNode = "run:" + runId; markTreeSel(); pickRun(runId, { stay: window.innerWidth > 900 }); };
+  head.appendChild(back);
+  const h1 = ce("h1");
+  h1.textContent = data.agent || (node && node.agent) || "subagent";
+  head.appendChild(h1);
+
+  const meta = ce("div", "dmeta");
+  const status = (node && node.status) || "done";
+  const pill = ce("span", "pill");
+  pill.appendChild(ce("span", "glyph " + status));
+  const ps = ce("span"); ps.textContent = status;
+  pill.appendChild(ps);
+  meta.appendChild(pill);
+  const addDot = () => meta.appendChild(ce("span", "dot"));
+  addDot();
+  const mdl = ce("code"); mdl.textContent = data.model || (node && node.model) || "";
+  meta.appendChild(mdl);
+  addDot();
+  const badge = ce("span", "badge"); badge.textContent = "subagent";
+  meta.appendChild(badge);
+  if (node) {
+    addDot();
+    const s = ce("span");
+    s.textContent = [money(node.cost, 4), (Number(node.turns) || 0) + " turns", dur(node)].filter(Boolean).join(" · ");
+    meta.appendChild(s);
+  }
+  head.appendChild(meta);
+  wrap.appendChild(head);
+
+  if (data.input || (node && node.task)) {
+    const sec = ce("div", "sec");
+    const k = ce("div", "k"); k.textContent = "input";
+    const p = ce("pre"); p.textContent = String(data.input || node.task);
+    sec.append(k, p);
+    wrap.appendChild(sec);
+  }
+
+  const logwrap = ce("div", "logwrap");
+  const log = ce("div", "log");
+  const recs = Array.isArray(data.records) ? data.records : [];
+  if (!recs.length) {
+    const e = ce("div", "empty"); e.textContent = "No transcript records.";
+    log.appendChild(e);
+  }
+  for (const rec of recs) {
+    if (rec && rec.tool) {
+      const t = rec.tool;
+      const d = ce("div", "entry tool");
+      const hdr = ce("div", "hdr");
+      const car = ce("span", "car"); car.textContent = "▸";
+      const nm = ce("span", "nm"); nm.textContent = String(t.name || "tool");
+      const tg = ce("span", "tg"); tg.textContent = stepTarget({ args: t.args });
+      hdr.append(car, nm, tg);
+      const body = ce("div", "body");
+      const ka = ce("div", "k"); ka.textContent = "args";
+      const pa = ce("pre"); pa.textContent = pretty(t.args ?? {});
+      body.append(ka, pa);
+      if (t.result !== undefined) {
+        const kr = ce("div", "k"); kr.textContent = t.err ? "error" : "result";
+        const pr = ce("pre"); pr.textContent = pretty(extractResult(t.result));
+        body.append(kr, pr);
+      }
+      if (t.err) d.classList.add("iserr");
+      d.append(hdr, body);
+      hdr.onclick = () => d.classList.toggle("open");
+      log.appendChild(d);
+    } else if (rec && typeof rec.text === "string" && rec.text.trim()) {
+      const d = ce("div", "entry msg");
+      d.textContent = rec.text;
+      log.appendChild(d);
+    }
+  }
+  if (data.output) {
+    const d = ce("div", "entry msg");
+    d.style.borderLeft = "1px solid var(--line)";
+    d.style.paddingLeft = "13px";
+    d.textContent = String(data.output);
+    log.appendChild(d);
+  }
+  logwrap.appendChild(log);
+  wrap.appendChild(logwrap);
+
+  const strip = ce("div", "strip");
+  const st = (k, v) => {
+    const b = ce("div", "st");
+    const kk = ce("span"); kk.textContent = k;
+    const vv = ce("span", "v"); vv.textContent = v;
+    b.append(kk, vv);
+    strip.appendChild(b);
+  };
+  st("parent run", clip(runId, 22));
+  st("index", String(index));
+  if (node) { st("cost", money(node.cost, 4)); st("turns", String(Number(node.turns) || 0)); st("duration", dur(node) || "—"); }
+  wrap.appendChild(strip);
+
+  pane.appendChild(wrap);
+}
+
 /* ---------------- global stream ---------------- */
 
 function mergeRun(r) {
@@ -933,6 +1715,7 @@ function scheduleRefresh() {
     refreshTimer = null;
     loadStats();
     loadSessions(true);
+    scheduleTree();
   }, 300);
 }
 
@@ -970,6 +1753,7 @@ document.addEventListener("keydown", e => {
   if (e.key === "?" || (e.key === "/" && e.shiftKey)) { e.preventDefault(); toggleHelp(); return; }
   if (e.key === "Escape" && help.classList.contains("on")) { toggleHelp(false); return; }
   if (e.key === "t") { cycleTheme(); return; }
+  if (e.key === "g") { setView(view === "tree" ? "list" : "tree"); return; }
 
   if (e.key === "j" || e.key === "k") {
     const list = currentList();
@@ -1023,6 +1807,12 @@ setInterval(() => {
 
 setInterval(() => { renderSessions(); renderRuns(); }, 30000);
 
+let rsz = null;
+window.addEventListener("resize", () => {
+  if (rsz) clearTimeout(rsz);
+  rsz = setTimeout(() => { rsz = null; if (view === "tree") renderTree(); }, 150);
+});
+
 /* ---------------- boot ---------------- */
 
 function hashRun() {
@@ -1031,6 +1821,9 @@ function hashRun() {
 }
 
 async function boot() {
+  document.body.dataset.view = view;
+  renderHeads();
+  if (view === "tree") loadTree();
   $("#detail").innerHTML =
     '<div class="empty">' +
     '<svg width="26" height="26" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="11" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="3" fill="currentColor"/></svg>' +
