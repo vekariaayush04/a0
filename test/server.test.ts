@@ -114,6 +114,26 @@ test("events?replay=1 returns quickly and ends with done even while running", as
   } finally { delete process.env.FAKE_PI_SLEEP; }
 });
 
+test("GET /api/stats shape and counts after two fake-pi runs", async () => {
+  const before = await (await fetch(`${url}/api/stats`)).json();
+  const r1 = await post("/api/runs", { sessionId: "s-stats", cwd: home, title: "T", brief: "stats1" });
+  const run1 = await r1.json();
+  await (await fetch(`${url}/api/runs/${run1.id}/wait?timeout=5`)).json();
+  const r2 = await post("/api/runs", { sessionId: "s-stats", cwd: home, title: "T", brief: "stats2" });
+  const run2 = await r2.json();
+  await (await fetch(`${url}/api/runs/${run2.id}/wait?timeout=5`)).json();
+  const stats = await (await fetch(`${url}/api/stats`)).json();
+  expect(stats).toHaveProperty("running");
+  expect(stats).toHaveProperty("queued");
+  expect(stats).toHaveProperty("runsToday");
+  expect(stats).toHaveProperty("costToday");
+  expect(stats).toHaveProperty("totalRuns");
+  expect(stats).toHaveProperty("totalCost");
+  expect(stats.tiers).toEqual(tiers);
+  expect(stats.totalRuns).toBe(before.totalRuns + 2);
+  expect(stats.runsToday).toBe(before.runsToday + 2);
+});
+
 test("tier resolution", async () => {
   const r1 = await post("/api/runs", { sessionId: "s1", cwd: home, title: "T", brief: "tier1", tier: "l1" });
   expect(r1.status).toBe(201);

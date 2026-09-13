@@ -19,6 +19,11 @@ export function startServer(d: Deps) {
       }
       if (m === "GET" && p === "/") return new Response(Bun.file(d.uiPath), { headers: { "content-type": "text/html; charset=utf-8" } });
       if (m === "GET" && p === "/api/sessions") return json(d.store.listSessions());
+      if (m === "GET" && p === "/api/stats") {
+        const now = new Date();
+        const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        return json({ ...d.store.stats(midnight), tiers: d.tiers });
+      }
       let mt: RegExpMatchArray | null;
       if (m === "GET" && (mt = p.match(/^\/api\/sessions\/([^/]+)\/runs$/))) return json(d.store.listRuns(decodeURIComponent(mt[1])));
       if (m === "GET" && p === "/api/runs") return json(d.store.listRuns());

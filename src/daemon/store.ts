@@ -1,7 +1,19 @@
 import { Database } from "bun:sqlite";
-import { basename } from "node:path";
+import { existsSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
 export type Status = "queued"|"running"|"done"|"failed"|"cancelled";
-export type Session = { id:string; cwd:string; title:string; firstSeen:number; lastSeen:number };
+export type Session = { id:string; cwd:string; title:string; firstSeen:number; lastSeen:number; runCount:number; runningCount:number; totalCost:number; cwds:string[] };
+
+/** Walks up from cwd (inclusive) looking for a `.git` entry; returns that ancestor's dirname, or null. */
+function gitRootTitle(cwd: string): string | null {
+  let dir = cwd;
+  for (;;) {
+    if (existsSync(join(dir, ".git"))) return basename(dir);
+    const parent = dirname(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
+}
 export type Run = { id:string; sessionId:string; title:string; cwd:string; provider:string; model:string; thinking:string; status:Status; created:number; started:number|null; ended:number|null; exitCode:number|null; piSessionId:string|null; result:string|null; inputTokens:number; outputTokens:number; cost:number; error:string|null };
 
 export function newRunId(): string {
@@ -24,11 +36,27 @@ export class Store {
   }
   touchSession(id: string, cwd: string, title?: string): Session {
     const now = Date.now();
-    this.db.run(`INSERT INTO sessions(id,cwd,title,first_seen,last_seen) VALUES(?,?,?,?,?)
-      ON CONFLICT(id) DO UPDATE SET last_seen=excluded.last_seen, cwd=excluded.cwd, title=COALESCE(?, sessions.title)`, [id, cwd, title ?? basename(cwd), now, now, title ?? null]);
-    return this.db.query(`SELECT id,cwd,title,first_seen firstSeen,last_seen lastSeen FROM sessions WHERE id=?`).get(id) as Session;
+    const existing = this.db.query(`SELECT id FROM sessions WHERE id=?`).get(id);
+    if (existing) {
+      if (title) this.db.run(`UPDATE sessions SET last_seen=?, title=? WHERE id=?`, [now, title, id]);
+      else this.db.run(`UPDATE sessions SET last_seen=? WHERE id=?`, [now, id]);
+    } else {
+      const resolvedTitle = title ?? gitRootTitle(cwd) ?? basename(cwd);
+      this.db.run(`INSERT INTO sessions(id,cwd,title,first_seen,last_seen) VALUES(?,?,?,?,?)`, [id, cwd, resolvedTitle, now, now]);
+    }
+    return this.sessionWithAggregates(id)!;
   }
-  listSessions(): Session[] { return this.db.query(`SELECT id,cwd,title,first_seen firstSeen,last_seen lastSeen FROM sessions ORDER BY last_seen DESC`).all() as Session[]; }
+  private sessionWithAggregates(id: string): Session | null {
+    const s = this.db.query(`SELECT id,cwd,title,first_seen firstSeen,last_seen lastSeen FROM sessions WHERE id=?`).get(id) as any;
+    if (!s) return null;
+    const agg = this.db.query(`SELECT COUNT(*) runCount, COALESCE(SUM(CASE WHEN status IN ('running','queued') THEN 1 ELSE 0 END),0) runningCount, COALESCE(SUM(cost),0) totalCost FROM runs WHERE session_id=?`).get(id) as any;
+    const cwds = (this.db.query(`SELECT cwd FROM runs WHERE session_id=? GROUP BY cwd ORDER BY MIN(created) ASC`).all(id) as any[]).map(r => r.cwd);
+    return { ...s, runCount: agg.runCount, runningCount: agg.runningCount, totalCost: agg.totalCost, cwds };
+  }
+  listSessions(): Session[] {
+    const ids = (this.db.query(`SELECT id FROM sessions ORDER BY last_seen DESC`).all() as any[]).map(r => r.id);
+    return ids.map(id => this.sessionWithAggregates(id)!);
+  }
   createRun(r: Pick<Run,"id"|"sessionId"|"title"|"cwd"|"provider"|"model"|"thinking">): Run {
     this.db.run(`INSERT INTO runs(id,session_id,title,cwd,provider,model,thinking,status,created) VALUES(?,?,?,?,?,?,?,'queued',?)`, [r.id, r.sessionId, r.title, r.cwd, r.provider, r.model, r.thinking, Date.now()]);
     return this.getRun(r.id)!;
@@ -45,5 +73,15 @@ export class Store {
   }
   failInFlight(reason: string): number {
     return this.db.run(`UPDATE runs SET status='failed', error=?, ended=? WHERE status IN ('queued','running')`, [reason, Date.now()]).changes;
+  }
+  stats(sinceMs: number): { running:number; queued:number; runsToday:number; costToday:number; totalRuns:number; totalCost:number } {
+    const overall = this.db.query(`SELECT
+        COALESCE(SUM(CASE WHEN status='running' THEN 1 ELSE 0 END),0) running,
+        COALESCE(SUM(CASE WHEN status='queued' THEN 1 ELSE 0 END),0) queued,
+        COUNT(*) totalRuns,
+        COALESCE(SUM(cost),0) totalCost
+      FROM runs`).get() as any;
+    const today = this.db.query(`SELECT COUNT(*) runsToday, COALESCE(SUM(cost),0) costToday FROM runs WHERE created >= ?`).get(sinceMs) as any;
+    return { running: overall.running, queued: overall.queued, runsToday: today.runsToday, costToday: today.costToday, totalRuns: overall.totalRuns, totalCost: overall.totalCost };
   }
 }
