@@ -57,7 +57,7 @@ Thin HTTP client used by the skill and by humans. All commands print JSON
 with `--json` (default when stdout is not a TTY).
 
 ```
-sentinel run --session <claudeSessionId> --cwd <dir> --title <t> --brief-file <f> [--model m] [--tier l1|l2|l3] [--provider p] [--thinking l] [--wait] [--timeout s]
+sentinel run --session <claudeSessionId> --cwd <dir> --title <t> [--brief-file <f> | --brief <text>] [--model m] [--tier l1|l2|l3] [--provider p] [--thinking l] [--wait] [--timeout s] [--json]
 sentinel wait <runId...>          # blocks until all given runs finish, prints results
 sentinel status [--session id]    # sessions and runs summary
 sentinel logs <runId> [--follow]  # events rendered as text
@@ -113,8 +113,9 @@ Single `index.html` served at `/`, no framework, no build step.
   and last activity. Middle lists that session's runs with title, status,
   model, duration and cost. Right shows the selected run: brief collapsed
   at the top, live log below streamed over SSE. Tool calls collapse to one
-  line and expand on click; assistant text renders as markdown; a quiet
-  footer shows tokens, cost, duration and exit code.
+  line and expand on click; assistant text is shown preformatted (no
+  markdown rendering in v1); a quiet footer shows tokens, cost, duration
+  and exit code.
 - Keyboard: `j`/`k` move within the focused pane, `Enter` moves right,
   `Esc` moves left, `c` cancels a running run with a confirmation.
 - Collapses to one pane on narrow widths.
@@ -125,6 +126,11 @@ Environment variables, all optional: `SENTINEL_PORT` (4747), `SENTINEL_HOME`
 (`~/.local/share/sentinel`), `SENTINEL_PI_BIN` (`pi`), `SENTINEL_PROVIDER`
 (`opencode-go`), `SENTINEL_MODEL` (`deepseek-v4.1-flash`), `SENTINEL_THINKING`
 (`high`), `SENTINEL_CONCURRENCY` (4), `SENTINEL_TIMEOUT` (1800 seconds).
+
+`SENTINEL_URL` is CLI-only: overrides the base URL the CLI talks to,
+default `http://127.0.0.1:${SENTINEL_PORT ?? 4747}`. Useful for pointing
+the CLI at a daemon on a non-default port without changing `SENTINEL_PORT`
+(which the daemon itself would also pick up).
 
 **Model tiers.** `SENTINEL_TIER_L1` (`muse-spark-1.3-contributor`),
 `SENTINEL_TIER_L2` (defaults to `SENTINEL_MODEL`, i.e. `deepseek-v4.1-flash`),
@@ -142,15 +148,16 @@ runs(id TEXT PK, session_id TEXT FK, title TEXT, cwd TEXT, provider TEXT,
 ```
 
 Status values: `queued`, `running`, `done`, `failed`, `cancelled`.
-Run ids are short, sortable (time-prefixed base32), so humans can type them.
+Run ids are short, sortable (time-prefixed base36), so humans can type them.
 
 ## HTTP API
 
 ```
-POST /api/runs                 body: {sessionId, cwd, title, brief, model?, provider?, thinking?, timeout?}
+POST /api/runs                 body: {sessionId, cwd, title, brief, model?, provider?, thinking?, tier?, timeout?}
+GET  /api/runs                 list all runs
 GET  /api/runs/:id
 GET  /api/runs/:id/wait?timeout=<s>   long-poll until terminal
-GET  /api/runs/:id/events      SSE: replay events.jsonl then live
+GET  /api/runs/:id/events      SSE: replay events.jsonl then live; ?replay=1 replays then sends `event: done` and closes without subscribing, regardless of status
 GET  /api/runs/:id/result
 POST /api/runs/:id/cancel
 GET  /api/sessions
@@ -160,7 +167,9 @@ GET  /                         UI
 ```
 
 Errors are JSON `{error: string}` with 4xx/5xx. The daemon binds to
-loopback only.
+loopback only. Every non-GET request is checked for CSRF: a present
+`Origin` header must match the daemon's own loopback origin, and
+`POST /api/runs` requires `content-type: application/json`.
 
 ## Failure handling
 
@@ -169,8 +178,12 @@ loopback only.
 - Timeout: SIGTERM, 5s grace, SIGKILL, status `failed`, error `timeout`.
 - Cancel: same signal sequence, status `cancelled`.
 - Daemon restart: on boot every run still marked `running` or `queued` is
-  set to `failed` with error `daemon restarted`. Pi children are in the
-  daemon's process group and die with it.
+  set to `failed` with error `daemon restarted`.
+- Shutdown: graceful shutdown (SIGTERM/SIGINT) calls `runner.shutdown()`,
+  which explicitly signals every in-flight child (same SIGTERM/grace/SIGKILL
+  path as cancel) and marks those runs `cancelled` with error `cancelled`.
+  A crash or an unclean restart instead hits the daemon-restart path above,
+  marking them `failed` with `daemon restarted`.
 - Missing `pi` binary or provider auth failure surfaces as a `failed` run
   with the error text, and the UI shows it.
 
@@ -189,7 +202,7 @@ loopback only.
 ```
 sentinel/
   package.json
-  src/daemon/   server.ts, runner.ts, store.ts, events.ts, sse.ts
+  src/daemon/   server.ts, runner.ts, store.ts, events.ts, bus.ts, main.ts
   src/cli/      main.ts
   src/ui/       index.html
   skill/        SKILL.md          (symlinked into ~/.claude/skills/sentinel)

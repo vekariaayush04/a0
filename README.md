@@ -52,6 +52,11 @@ sentinel install    # user systemd service + Claude skill symlink
 sentinel open       # opens the UI
 ```
 
+`sentinel install` writes and enables the `sentineld` systemd user
+service, restarting it if it was already running, symlinks
+`~/.local/bin/sentinel` onto your PATH, and symlinks the Claude skill into
+`~/.claude/skills/sentinel`.
+
 Without systemd, run `sentinel daemon` in a terminal instead.
 
 ## Usage
@@ -108,6 +113,7 @@ single run.
 | `SENTINEL_TIER_L1` | `muse-spark-1.3-contributor` | Model for `--tier l1` |
 | `SENTINEL_TIER_L2` | `deepseek-v4.1-flash` (`SENTINEL_MODEL`) | Model for `--tier l2` |
 | `SENTINEL_TIER_L3` | `glm-5.3` | Model for `--tier l3` |
+| `SENTINEL_URL` | `http://127.0.0.1:${SENTINEL_PORT ?? 4747}` | CLI-only: base URL the CLI talks to |
 
 ## How a run works
 
@@ -122,6 +128,15 @@ single run.
 
 Failures are explicit: non-zero exit, timeout, cancel and daemon restart
 each leave a run in `failed` or `cancelled` with a reason.
+
+## Security
+
+Sentinel binds to `127.0.0.1` only and has no authentication — anything
+that can reach the port can drive it. The API rejects cross-origin browser
+requests (a mismatched `Origin` header gets a 403) and non-JSON POST
+bodies (a 415), which blocks the common ways a malicious web page could
+abuse it, but there is no protection against another local user or
+process on the same machine. Do not expose the port beyond loopback.
 
 ## Development
 

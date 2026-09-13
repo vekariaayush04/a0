@@ -36,7 +36,7 @@ the UI groups your runs under this session.
    Each prints a run JSON with an `id`.
 
    **Model tiers.** Sentinel has three tiers, configured in the daemon:
-   - `--tier l1` (cheap, default Muse Spark): the brief is mostly reading.
+   - `--tier l1` (cheap, Muse Spark): the brief is mostly reading.
      Rule of thumb: it asks Pi to read or summarise more than ~10 files,
      or it is research, scouting, log analysis, or fact collection with
      at most trivial edits.
@@ -58,7 +58,8 @@ the UI groups your runs under this session.
 6. **Iterate.** Write a follow-up brief that names exactly what is
    missing and dispatch again. Do not re-send the whole original brief.
 7. **Report.** Tell the user what was built, what you verified, the run
-   ids, and that details are at http://127.0.0.1:4747.
+   ids, and that details are at http://127.0.0.1:4747 (or the port in
+   SENTINEL_PORT).
 
 ## Rules
 
