@@ -85,6 +85,11 @@ async function runCommand() {
     wait: { type: "boolean" },
   });
   if (!v.title) die("--title is required");
+  let timeout: number | undefined;
+  if (v.timeout !== undefined) {
+    timeout = Number(v.timeout);
+    if (!Number.isFinite(timeout) || timeout <= 0) die("--timeout must be a positive number");
+  }
   let brief: string;
   if (v.brief !== undefined) {
     brief = v.brief;
@@ -106,7 +111,7 @@ async function runCommand() {
     provider: v.provider,
     thinking: v.thinking,
     tier: v.tier,
-    timeout: v.timeout ? Number(v.timeout) : undefined,
+    timeout,
   };
   let run = await (
     await api("/api/runs", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
@@ -140,7 +145,7 @@ async function logsCommand() {
   if (!id) die("run id required");
 
   if (!v.follow) {
-    const text = await (await api(`/api/runs/${id}/events`)).text();
+    const text = await (await api(`/api/runs/${id}/events?replay=1`)).text();
     for (const chunk of text.split("\n\n")) {
       const m = chunk.match(/^event: event\ndata: (.*)$/s);
       if (m) {
@@ -174,7 +179,7 @@ async function logsCommand() {
 }
 
 async function resultCommand() {
-  const [id] = rest;
+  const { positionals: [id] } = opts({});
   if (!id) die("run id required");
   process.stdout.write(await (await api(`/api/runs/${id}/result`)).text());
 }
@@ -212,7 +217,7 @@ async function main() {
       await import("../daemon/main.ts");
       break;
     case "install":
-      (await import("./install.ts")).install();
+      await (await import("./install.ts")).install();
       break;
     default:
       console.log(`sentinel <run|wait|status|logs|result|cancel|open|daemon|install>`);

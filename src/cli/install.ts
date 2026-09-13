@@ -15,10 +15,14 @@ export async function install() {
   );
   console.log(`systemd unit written to ${join(unitDir, "sentineld.service")}`);
 
-  const r = Bun.spawnSync(["sh", "-c", "systemctl --user daemon-reload && systemctl --user enable --now sentineld"]);
+  const r = Bun.spawnSync([
+    "sh",
+    "-c",
+    "systemctl --user daemon-reload && systemctl --user enable --now sentineld && systemctl --user restart sentineld",
+  ]);
   console.log(
     r.exitCode === 0
-      ? "sentineld enabled and started"
+      ? "sentineld enabled and (re)started"
       : `systemd step failed (${r.stderr.toString().trim()}); run \`sentinel daemon\` manually`
   );
 

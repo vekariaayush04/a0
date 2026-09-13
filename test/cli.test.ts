@@ -44,6 +44,20 @@ test("unknown flag errors with option in message", async () => {
   expect(parsed.error.toLowerCase()).toContain("bogus-flag");
 });
 
+test("run --timeout 0 is rejected client-side", async () => {
+  const r = await cli("run", "--title", "T", "--brief", "x", "--cwd", home, "--timeout", "0");
+  expect(r.code).toBe(1);
+  const parsed = JSON.parse(r.err);
+  expect(parsed.error).toContain("--timeout");
+});
+
+test("result --json <id> works with flag before the positional", async () => {
+  const run = JSON.parse((await cli("run", "--title", "T", "--brief", "y", "--cwd", home, "--wait")).out);
+  const r = await cli("result", "--json", run.id);
+  expect(r.code).toBe(0);
+  expect(r.out).toBe("echo: y");
+});
+
 test("wait with multiple ids returns done runs in given order", async () => {
   const f = join(home, "brief2.md"); writeFileSync(f, "second thing");
   const a = JSON.parse((await cli("run", "--title", "A", "--brief", "alpha", "--cwd", home)).out);
