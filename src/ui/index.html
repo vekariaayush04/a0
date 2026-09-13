@@ -140,6 +140,7 @@ function renderSessions() {
 }
 
 async function pickSession(id) {
+  if (!id) return;
   selSession = id;
   focus = "runs";
   document.body.dataset.pane = "runs";
@@ -154,7 +155,7 @@ function renderRuns() {
   $("#runList").innerHTML = runs.length
     ? runs.map(r => `
       <div class="row ${r.id === selRun ? "sel" : ""}" data-r="${esc(r.id)}">
-        <div class="dot ${r.status}"></div>
+        <div class="dot ${esc(r.status)}"></div>
         <div class="t">${esc(r.title)}<div class="m">${esc(r.model)} · ${dur(r)} ${money(r.cost)}</div></div>
         <div class="m">${ago(r.created)}</div>
       </div>`).join("")
@@ -163,6 +164,7 @@ function renderRuns() {
 }
 
 async function pickRun(id) {
+  if (!id) return;
   selRun = id;
   focus = "detail";
   document.body.dataset.pane = "detail";
@@ -296,6 +298,7 @@ document.addEventListener("keydown", e => {
   let i = list.indexOf(cur);
 
   if (e.key === "j" || e.key === "k") {
+    if (list.length === 0) return;
     i = Math.max(0, Math.min(list.length - 1, i + (e.key === "j" ? 1 : -1)));
     focus === "sessions" ? pickSession(list[i]) : pickRun(list[i]);
     if (focus === "detail") focus = "runs";
