@@ -351,7 +351,7 @@ const ago = t => {
 const fmtMs = ms => {
   if (!Number.isFinite(ms) || ms < 0) return "";
   if (ms < 1000) return Math.round(ms) + "ms";
-  if (ms < 60000) return (ms / 1000).toFixed(ms < 10000 ? 1 : 0).replace(/\.0$/, "") + "s";
+  if (ms < 59500) return (ms / 1000).toFixed(ms < 10000 ? 1 : 0).replace(/\.0$/, "") + "s";
   const total = Math.round(ms / 1000);
   const m = Math.floor(total / 60);
   const s = total % 60;
@@ -717,7 +717,12 @@ function stepTarget(ev) {
   return "";
 }
 
+let trackRaf = 0;
 function renderTrack() {
+  if (trackRaf) return;
+  trackRaf = requestAnimationFrame(() => { trackRaf = 0; renderTrackNow(); });
+}
+function renderTrackNow() {
   if (!trackEl) return;
   trackEl.innerHTML = "";
   if (!steps.length) return;
