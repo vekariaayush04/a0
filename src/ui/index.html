@@ -732,7 +732,7 @@ function renderTrack() {
     const lb = ce("span", "lb");
     lb.textContent = s.kind === "msg" ? "✎" : (s.name + (s.target ? " " + s.target : ""));
     b.appendChild(lb);
-    if (s.kind === "tool" && s.t1 != null && s.t0 != null) {
+    if (s.kind === "tool" && s.t1 != null && s.t0 != null && !s.legacy) {
       const du = ce("span", "du");
       du.textContent = fmtMs(s.t1 - s.t0);
       b.appendChild(du);
@@ -763,6 +763,7 @@ function appendEntry(node) {
 function handleEvent(ev) {
   if (!ev || typeof ev !== "object" || !logEl) return;
   const ts = Number(ev.ts) || Date.now();
+  const legacy = !Number.isFinite(Number(ev.ts));
 
   if (ev.type === "message_end" && ev.message && ev.message.role === "user") {
     if (!briefSeen) {
@@ -812,7 +813,7 @@ function handleEvent(ev) {
     hdr.onclick = () => d.classList.toggle("open");
     appendEntry(d);
 
-    const step = { kind: "tool", name, target, t0: ts, t1: null, err: false, el: d, du, body };
+    const step = { kind: "tool", name, target, t0: ts, t1: null, err: false, el: d, du, body, legacy };
     steps.push(step);
     if (ev.toolCallId) stepIndex.set(String(ev.toolCallId), step);
     renderTrack();
@@ -824,7 +825,8 @@ function handleEvent(ev) {
     if (!step) return;
     step.t1 = ts;
     step.err = !!ev.isError;
-    if (step.du) step.du.textContent = fmtMs(ts - step.t0);
+    if (legacy) step.legacy = true;
+    if (step.du && !step.legacy) step.du.textContent = fmtMs(ts - step.t0);
     if (step.err && step.el) step.el.classList.add("iserr");
     if (step.body) {
       const kr = ce("div", "k"); kr.textContent = ev.isError ? "error" : "result";
