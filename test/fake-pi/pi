@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Fake pi for tests. Mimics `pi -p --mode json`.
+last="${@: -1}"
+echo '{"type":"session","version":3,"id":"00000000-0000-4000-8000-000000000001","timestamp":"2026-01-01T00:00:00Z","cwd":"'"$PWD"'"}'
+echo '{"type":"message_end","message":{"role":"user","content":[{"type":"text","text":"'"$last"'"}]}}'
+echo "fake stderr" >&2
+sleep "${FAKE_PI_SLEEP:-0}"
+if [ "${FAKE_PI_FAIL:-0}" = "1" ]; then
+  echo '{"type":"message_end","message":{"role":"assistant","content":[],"stopReason":"error","errorMessage":"fake failure","usage":{"input":1,"output":0,"cost":{"total":0}}}}'
+else
+  echo '{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":"echo: '"$last"'"}],"stopReason":"stop","usage":{"input":10,"output":5,"cost":{"total":0.001}}}}'
+fi
+echo '{"type":"agent_end","messages":[]}'
+exit "${FAKE_PI_EXIT:-0}"
