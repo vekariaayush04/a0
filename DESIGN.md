@@ -1,7 +1,7 @@
 # Sentinel — design
 
-Date: 2026-09-13
-Status: approved in brainstorm, awaiting spec review
+This is the working design document. It records the decisions behind the
+code; the README covers usage.
 
 ## Purpose
 
