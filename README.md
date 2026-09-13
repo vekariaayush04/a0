@@ -33,6 +33,10 @@ can always find them again.
   unit of work, fires them in parallel, waits, verifies, and reports.
 - **The UI** — one HTML file, no framework. Sessions on the left, runs in
   the middle, the live log on the right. Pure black and white.
+- **Spawn tree view** — when a run's Pi agent fans out subagents (via the
+  pi-subagents extension), the UI can show them as a tree with per-agent
+  cost, turns, status and tool calls, drilling into any subagent's full
+  transcript.
 
 ## Requirements
 

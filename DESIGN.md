@@ -167,6 +167,25 @@ carries `ts` (epoch ms), stamped by the daemon the moment it parses the
 line off Pi's stdout — not whatever timestamp Pi itself may include.
 Replayed events carry the stored `ts`.
 
+### Spawn tree
+
+Pi's own pi-subagents extension lets one run fan a subagent out mid-flight
+(e.g. an `l2` run launching a read-heavy `scout` before it edits); each
+subagent writes its own `_meta.json`, `_input.md`, `_output.md` and
+`_transcript.jsonl` into that run's `pi-session/subagent-artifacts/`. The
+tree endpoints reconstruct this as a tree, purely by reading a run's own
+`events.jsonl` (for its top-level tool calls and its `subagent` tool-call
+spawns) and that artifacts directory (for each child's status, cost,
+turns and its own tool calls, parsed from its transcript) — no separate
+storage. `GET /api/runs/:id/tree` returns the run plus its subagent
+children (recursing into any nested spawn-of-a-spawn artifacts);
+`GET /api/sessions/:id/tree` stacks every run in a session, oldest first;
+`GET /api/runs/:id/subagents/:index/transcript` returns one subagent's
+full transcript, rendered as ordered message and tool records. Trees are
+computed on demand and cached in memory by run id once the run is
+terminal (a running run's tree is never cached, since its subagent
+artifacts are still being written).
+
 ## HTTP API
 
 ```
@@ -179,6 +198,9 @@ GET  /api/runs/:id/result
 POST /api/runs/:id/cancel
 GET  /api/sessions             sessions with run aggregates, see Data model
 GET  /api/sessions/:id/runs
+GET  /api/runs/:id/tree                          spawn tree for one run, see Spawn tree
+GET  /api/sessions/:id/tree                      a session's run trees, stacked in created order
+GET  /api/runs/:id/subagents/:index/transcript   one subagent's rendered transcript
 GET  /api/stats                {running, queued, runsToday, costToday, totalRuns, totalCost, tiers}; "today" is since local midnight
 GET  /api/events               SSE: run status changes for list refresh
 GET  /                         UI
