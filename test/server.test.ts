@@ -37,6 +37,29 @@ test("sse replays and finishes", async () => {
 
 test("serves ui", async () => { expect(await (await fetch(url + "/")).text()).toContain("Sentinel"); });
 
+test("global events feed forwards status frames only, not per-token events", async () => {
+  const ac = new AbortController();
+  const res = await fetch(`${url}/api/events`, { signal: ac.signal });
+  const reader = res.body!.getReader();
+  const dec = new TextDecoder();
+  let text = "";
+  const pump = (async () => {
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        text += dec.decode(value, { stream: true });
+      }
+    } catch { /* aborted */ }
+  })();
+  await post("/api/runs", { sessionId: "s1", cwd: home, title: "T", brief: "global-feed" });
+  await Bun.sleep(1000);
+  ac.abort();
+  await Promise.race([pump, Bun.sleep(2000)]);
+  expect(text).toContain("event: status");
+  expect(text).not.toContain("event: event");
+});
+
 test("tier resolution", async () => {
   const r1 = await post("/api/runs", { sessionId: "s1", cwd: home, title: "T", brief: "tier1", tier: "l1" });
   expect(r1.status).toBe(201);

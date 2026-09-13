@@ -72,3 +72,24 @@ test("bus receives events and status", async () => {
   const run = r.submit(base()); await r.waitFor(run.id, 5000);
   expect(kinds.filter(k => k === "event").length).toBe(4); expect(kinds[kinds.length - 1]).toBe("status");
 });
+
+test("cancel called synchronously after submit (before brief read resolves) still cancels", async () => {
+  const r = mk(); const run = r.submit(base());
+  // No await yet: start()'s async brief.text() chain cannot have resolved, so the
+  // run is still in the "starting" window. cancel() must still succeed.
+  expect(r.cancel(run.id)).toBe(true);
+  const done = await r.waitFor(run.id, 5000);
+  expect(done.status).toBe("cancelled");
+});
+
+test("double cancel on a running run does not throw and ends cancelled", async () => {
+  process.env.FAKE_PI_SLEEP = "5";
+  try {
+    const r = mk(); const run = r.submit(base());
+    await Bun.sleep(200);
+    expect(r.cancel(run.id)).toBe(true);
+    expect(() => r.cancel(run.id)).not.toThrow();
+    const done = await r.waitFor(run.id, 5000);
+    expect(done.status).toBe("cancelled");
+  } finally { delete process.env.FAKE_PI_SLEEP; }
+}, 10000);

@@ -47,9 +47,11 @@ function sse(bus: Bus, key: string, replayPath: string | null, alreadyDone = fal
   const stream = new ReadableStream({
     start(ctrl) {
       const send = (ev: string, data: unknown) => ctrl.enqueue(enc.encode(`event: ${ev}\ndata: ${JSON.stringify(data)}\n\n`));
+      ctrl.enqueue(enc.encode(": connected\n\n")); // flush headers/first byte immediately so clients see the stream open
       if (replayPath && existsSync(replayPath)) for (const l of readFileSync(replayPath, "utf8").split("\n")) if (l.trim()) send("event", JSON.parse(l));
       if (alreadyDone) { send("done", {}); ctrl.close(); return; }
       off = bus.subscribe(key, msg => {
+        if (key === "*" && msg.kind !== "status") return; // global feed: status changes only (run list refresh), not per-token events
         send(msg.kind, msg.data);
         if (key !== "*" && msg.kind === "status" && isTerminal(msg.data.status)) { send("done", {}); off?.(); ctrl.close(); }
       });

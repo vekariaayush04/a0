@@ -6,3 +6,12 @@ const n = store.failInFlight("daemon restarted"); if (n) console.log(`marked ${n
 const bus = new Bus(); const runner = new Runner(store, bus, cfg);
 const server = startServer({ store, runner, bus, port: cfg.port, uiPath: join(import.meta.dir, "../ui/index.html"), tiers: cfg.tiers, defaults: { provider: cfg.provider, model: cfg.model, thinking: cfg.thinking } });
 console.log(`sentineld listening on http://127.0.0.1:${server.port}`);
+
+let shuttingDown = false;
+function shutdown() {
+  if (shuttingDown) return; shuttingDown = true;
+  runner.shutdown();
+  setTimeout(() => process.exit(0), 5000);
+}
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
