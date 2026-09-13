@@ -1,0 +1,11 @@
+[Unit]
+Description=Sentinel daemon (Pi run tracker)
+After=default.target
+
+[Service]
+ExecStart=%BUN% %REPO%/src/daemon/main.ts
+Restart=on-failure
+Environment=PATH=%PATH%
+
+[Install]
+WantedBy=default.target
