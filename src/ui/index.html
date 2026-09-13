@@ -1,1 +1,328 @@
-<title>Sentinel</title><h1>Sentinel</h1>
+<title>Sentinel</title>
+<style>
+:root {
+  --bg: #fff;
+  --fg: #000;
+  --dim: color-mix(in srgb, var(--fg) 55%, transparent);
+  --line: color-mix(in srgb, var(--fg) 12%, transparent);
+  --hover: color-mix(in srgb, var(--fg) 5%, transparent);
+  --accent: #0a84ff;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #000; --fg: #fff; }
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font: 14px/1.5 -apple-system, "SF Pro Text", Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.app { display: grid; grid-template-columns: 240px 320px 1fr; height: 100vh; }
+.pane { border-right: 1px solid var(--line); overflow: auto; display: flex; flex-direction: column; }
+.pane:last-child { border-right: 0; }
+.head {
+  padding: 20px 20px 12px;
+  font-size: 12px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--dim);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+}
+.brand { font-size: 18px; font-weight: 600; letter-spacing: -.02em; color: var(--fg); text-transform: none; }
+.row {
+  padding: 12px 20px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+.row:hover { background: var(--hover); }
+.row.sel { background: var(--hover); box-shadow: inset 3px 0 0 var(--fg); }
+.row .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .m { color: var(--dim); font-size: 12px; white-space: nowrap; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--fg); flex: none; align-self: center; opacity: .35; }
+.dot.running { background: var(--accent); opacity: 1; animation: pulse 1.6s ease-in-out infinite; }
+.dot.done { opacity: 1; }
+.dot.failed { background: transparent; border: 1.5px solid var(--fg); }
+.dot.cancelled { opacity: .2; }
+.dot.queued { opacity: .15; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+.detail { padding: 24px 28px; max-width: 900px; }
+.detail h1 { font-size: 22px; font-weight: 600; letter-spacing: -.02em; margin: 0 0 4px; }
+.meta { color: var(--dim); font-size: 12px; margin-bottom: 20px; display: flex; gap: 16px; flex-wrap: wrap; }
+details { border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin-bottom: 20px; }
+summary { cursor: pointer; color: var(--dim); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
+pre { white-space: pre-wrap; margin: 10px 0 0; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.log { display: flex; flex-direction: column; gap: 14px; }
+.msg { white-space: pre-wrap; }
+.tool { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--dim); cursor: pointer; }
+.tool pre { display: none; color: var(--fg); }
+.tool.open pre { display: block; }
+.err { border-left: 2px solid var(--fg); padding-left: 12px; }
+.foot { margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--dim); font-size: 12px; display: flex; gap: 20px; flex-wrap: wrap; }
+button { all: unset; cursor: pointer; font-size: 12px; border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; }
+button:hover { background: var(--hover); }
+.empty { padding: 40px 20px; color: var(--dim); text-align: center; }
+@media (max-width: 900px) {
+  .app { grid-template-columns: 1fr; }
+  .pane { display: none; }
+  body[data-pane=sessions] #sessions,
+  body[data-pane=runs] #runs,
+  body[data-pane=detail] #detail { display: flex; }
+}
+</style>
+<div class="app">
+  <div class="pane" id="sessions">
+    <div class="head"><div class="brand">Sentinel</div></div>
+    <div id="sessionList"></div>
+  </div>
+  <div class="pane" id="runs">
+    <div class="head" id="runsHead">Runs</div>
+    <div id="runList"><div class="empty">Select a session</div></div>
+  </div>
+  <div class="pane" id="detail">
+    <div class="detail" id="detailBody"><div class="empty">Select a run</div></div>
+  </div>
+</div>
+<script>
+const $ = s => document.querySelector(s);
+
+const esc = s => String(s ?? "").replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+
+const ago = t => {
+  if (!t) return "";
+  const d = (Date.now() - t) / 1000;
+  if (d < 60) return "now";
+  if (d < 3600) return Math.floor(d / 60) + "m";
+  if (d < 86400) return Math.floor(d / 3600) + "h";
+  return Math.floor(d / 86400) + "d";
+};
+
+const dur = r => {
+  if (!r.started) return "";
+  const ms = (r.ended ?? Date.now()) - r.started;
+  return ms / 1000 < 60 ? Math.round(ms / 1000) + "s" : Math.round(ms / 60000) + "m";
+};
+
+const money = c => c ? "$" + c.toFixed(4) : "";
+
+let sessions = [];
+let runs = [];
+let selSession = null;
+let selRun = null;
+let es = null;
+let focus = "sessions";
+
+document.body.dataset.pane = "sessions";
+
+async function loadSessions() {
+  sessions = await (await fetch("/api/sessions")).json();
+  renderSessions();
+  if (!selSession && sessions[0]) pickSession(sessions[0].id);
+}
+
+function renderSessions() {
+  $("#sessionList").innerHTML = sessions.length
+    ? sessions.map(s => `
+      <div class="row ${s.id === selSession ? "sel" : ""}" data-s="${esc(s.id)}">
+        <div class="t">${esc(s.title)}<div class="m">${esc(s.cwd)}</div></div>
+        <div class="m">${ago(s.lastSeen)}</div>
+      </div>`).join("")
+    : `<div class="empty">No sessions yet.<br>Run <code>sentinel run</code>.</div>`;
+  document.querySelectorAll("[data-s]").forEach(el => el.onclick = () => pickSession(el.dataset.s));
+}
+
+async function pickSession(id) {
+  selSession = id;
+  focus = "runs";
+  document.body.dataset.pane = "runs";
+  renderSessions();
+  runs = await (await fetch(`/api/sessions/${encodeURIComponent(id)}/runs`)).json();
+  renderRuns();
+}
+
+function renderRuns() {
+  const s = sessions.find(x => x.id === selSession);
+  $("#runsHead").textContent = s ? s.title : "Runs";
+  $("#runList").innerHTML = runs.length
+    ? runs.map(r => `
+      <div class="row ${r.id === selRun ? "sel" : ""}" data-r="${esc(r.id)}">
+        <div class="dot ${r.status}"></div>
+        <div class="t">${esc(r.title)}<div class="m">${esc(r.model)} · ${dur(r)} ${money(r.cost)}</div></div>
+        <div class="m">${ago(r.created)}</div>
+      </div>`).join("")
+    : `<div class="empty">No runs</div>`;
+  document.querySelectorAll("[data-r]").forEach(el => el.onclick = () => pickRun(el.dataset.r));
+}
+
+async function pickRun(id) {
+  selRun = id;
+  focus = "detail";
+  document.body.dataset.pane = "detail";
+  renderRuns();
+  const r = await (await fetch(`/api/runs/${id}`)).json();
+  renderDetail(r);
+  stream(id);
+}
+
+function renderDetail(r) {
+  $("#detailBody").innerHTML = `
+    <h1>${esc(r.title)}</h1>
+    <div class="meta">
+      <span>${esc(r.id)}</span>
+      <span>${esc(r.provider)}/${esc(r.model)}</span>
+      <span>${esc(r.status)}</span>
+      ${r.status === "running" || r.status === "queued" ? `<button id="cancel">Cancel</button>` : ""}
+    </div>
+    <details><summary>Brief</summary><pre id="brief">loading…</pre></details>
+    <div class="log" id="log"></div>
+    <div class="foot" id="foot"></div>`;
+  $("#cancel") && ($("#cancel").onclick = async () => {
+    if (confirm("Cancel this run?")) await fetch(`/api/runs/${r.id}/cancel`, { method: "POST" });
+  });
+  renderFoot(r);
+}
+
+function renderFoot(r) {
+  $("#foot").innerHTML = `
+    <span>${dur(r)}</span>
+    <span>${(r.inputTokens || 0).toLocaleString()} in · ${(r.outputTokens || 0).toLocaleString()} out</span>
+    <span>${money(r.cost)}</span>
+    ${r.exitCode != null ? `<span>exit ${r.exitCode}</span>` : ""}
+    ${r.error ? `<span class="err">${esc(r.error)}</span>` : ""}`;
+}
+
+function stream(id) {
+  es && es.close();
+  es = new EventSource(`/api/runs/${id}/events`);
+  const log = $("#log");
+  let sawEvent = false;
+
+  es.addEventListener("event", e => {
+    const ev = JSON.parse(e.data);
+    const el = renderEvent(ev);
+    if (el) {
+      sawEvent = true;
+      log.appendChild(el);
+      el.scrollIntoView({ block: "end" });
+    }
+  });
+
+  es.addEventListener("status", e => {
+    const r = JSON.parse(e.data);
+    runs = runs.map(x => x.id === r.id ? r : x);
+    renderRuns();
+    if (r.id === selRun) {
+      renderFoot(r);
+      if ($("#cancel") && r.status !== "running" && r.status !== "queued") $("#cancel").remove();
+      if (!sawEvent && r.result && (r.status === "done" || r.status === "failed" || r.status === "cancelled")) {
+        const d = document.createElement("div");
+        d.className = "msg";
+        d.textContent = r.result;
+        log.appendChild(d);
+        sawEvent = true;
+      }
+    }
+  });
+
+  es.addEventListener("done", () => es.close());
+  es.onerror = () => {};
+}
+
+function renderEvent(ev) {
+  const d = document.createElement("div");
+
+  if (ev.type === "message_end" && ev.message?.role === "assistant") {
+    if (ev.message.stopReason === "error") {
+      d.className = "msg err";
+      d.textContent = ev.message.errorMessage;
+      return d;
+    }
+    const t = (ev.message.content || [])
+      .filter(c => c.type === "text")
+      .map(c => c.text)
+      .join("");
+    if (!t) return null;
+    d.className = "msg";
+    d.textContent = t;
+    return d;
+  }
+
+  if (ev.type === "message_end" && ev.message?.role === "user") {
+    const t = (ev.message.content || []).map(c => c.text || "").join("");
+    $("#brief").textContent = t;
+    return null;
+  }
+
+  if (/^tool/.test(ev.type)) {
+    d.className = "tool";
+    d.innerHTML = `▸ ${esc(ev.toolName || ev.name || ev.type)}<pre>${esc(JSON.stringify(ev, null, 1))}</pre>`;
+    d.onclick = () => d.classList.toggle("open");
+    return d;
+  }
+
+  return null;
+}
+
+const global = new EventSource("/api/events");
+global.addEventListener("status", e => {
+  const r = JSON.parse(e.data);
+  if (!sessions.find(s => s.id === r.sessionId)) {
+    loadSessions();
+  } else {
+    const s = sessions.find(x => x.id === r.sessionId);
+    s.lastSeen = Date.now();
+    renderSessions();
+  }
+  if (r.sessionId === selSession) {
+    const i = runs.findIndex(x => x.id === r.id);
+    i < 0 ? runs.unshift(r) : runs[i] = r;
+    renderRuns();
+  }
+});
+
+document.addEventListener("keydown", e => {
+  if (["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
+
+  const list = focus === "sessions" ? sessions.map(s => s.id) : runs.map(r => r.id);
+  const cur = focus === "sessions" ? selSession : selRun;
+  let i = list.indexOf(cur);
+
+  if (e.key === "j" || e.key === "k") {
+    i = Math.max(0, Math.min(list.length - 1, i + (e.key === "j" ? 1 : -1)));
+    focus === "sessions" ? pickSession(list[i]) : pickRun(list[i]);
+    if (focus === "detail") focus = "runs";
+  }
+
+  if (e.key === "Enter") {
+    if (focus === "sessions") {
+      focus = "runs";
+      document.body.dataset.pane = "runs";
+      if (!selRun && runs[0]) pickRun(runs[0].id);
+    } else if (focus === "runs" && selRun) {
+      focus = "detail";
+      document.body.dataset.pane = "detail";
+    }
+  }
+
+  if (e.key === "Escape") {
+    focus = focus === "detail" ? "runs" : "sessions";
+    document.body.dataset.pane = focus;
+  }
+
+  if (e.key === "c" && $("#cancel")) $("#cancel").click();
+});
+
+setInterval(() => {
+  if (runs.some(r => r.status === "running")) renderRuns();
+}, 1000);
+
+loadSessions();
+</script>
