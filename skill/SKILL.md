@@ -73,3 +73,7 @@ the UI groups your runs under this session.
 - Do not dispatch destructive operations (deleting branches, force
   pushes, dropping data). Do those yourself with the user's approval.
 - One run per unit of work. A brief that says "and also" is two briefs.
+- Every brief must contain this line under `Do not`: "Never use pkill,
+  killall, or kill by name. Stop only processes you started, by the PID
+  you captured (`$!`). Never touch systemd or port 4747." Pi runs share
+  the machine with the Sentinel daemon; a broad kill has taken it down.

@@ -4,7 +4,8 @@ After=default.target
 
 [Service]
 ExecStart=%BUN% %REPO%/src/daemon/main.ts
-Restart=on-failure
+Restart=always
+RestartSec=1
 Environment=PATH=%PATH%
 
 [Install]
