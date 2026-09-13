@@ -10,14 +10,21 @@ const err = (msg: string, status = 400) => json({ error: msg }, status);
 export function startServer(d: Deps) {
   return Bun.serve({
     hostname: "127.0.0.1", port: d.port, idleTimeout: 255,
-    async fetch(req) {
+    async fetch(req, server) {
       const u = new URL(req.url); const p = u.pathname; const m = req.method;
+      if (m !== "GET") {
+        const origin = req.headers.get("origin");
+        const port = server.port;
+        if (origin && origin !== `http://127.0.0.1:${port}` && origin !== `http://localhost:${port}`) return err("forbidden origin", 403);
+      }
       if (m === "GET" && p === "/") return new Response(Bun.file(d.uiPath), { headers: { "content-type": "text/html; charset=utf-8" } });
       if (m === "GET" && p === "/api/sessions") return json(d.store.listSessions());
       let mt: RegExpMatchArray | null;
       if (m === "GET" && (mt = p.match(/^\/api\/sessions\/([^/]+)\/runs$/))) return json(d.store.listRuns(decodeURIComponent(mt[1])));
       if (m === "GET" && p === "/api/runs") return json(d.store.listRuns());
       if (m === "POST" && p === "/api/runs") {
+        const ct = req.headers.get("content-type") ?? "";
+        if (!ct.startsWith("application/json")) return err("content-type must be application/json", 415);
         let b: any; try { b = await req.json(); } catch { return err("invalid json"); }
         for (const k of ["sessionId", "cwd", "title", "brief"]) if (typeof b?.[k] !== "string" || !b[k]) return err(`missing ${k}`);
         if (!existsSync(b.cwd)) return err("cwd does not exist");

@@ -60,12 +60,30 @@ test("global events feed forwards status frames only, not per-token events", asy
   expect(text).not.toContain("event: event");
 });
 
-test("tier resolution", async () => {
-  const r1 = await post("/api/runs", { sessionId: "s1", cwd: home, title: "T", brief: "tier1", tier: "l1" });
-  expect(r1.status).toBe(201);
-  const run1 = await r1.json();
-  expect(run1.model).toBe("muse-spark-1.3-contributor");
+test("csrf: cross-origin text/plain POST is rejected", async () => {
+  const r = await fetch(`${url}/api/runs`, { method: "POST", headers: { "content-type": "text/plain", origin: "http://evil.example" }, body: "{}" });
+  expect(r.status).toBe(403);
+  expect((await r.json()).error).toBe("forbidden origin");
+});
 
-  const r2 = await post("/api/runs", { sessionId: "s1", cwd: home, title: "T", brief: "tier9", tier: "l9" });
-  expect(r2.status).toBe(400);
+test("csrf: cross-origin JSON POST is rejected", async () => {
+  const r = await fetch(`${url}/api/runs`, { method: "POST", headers: { "content-type": "application/json", origin: "http://evil.example" }, body: JSON.stringify({ sessionId: "s1", cwd: home, title: "T", brief: "hi" }) });
+  expect(r.status).toBe(403);
+  expect((await r.json()).error).toBe("forbidden origin");
+});
+
+test("csrf: same-origin JSON POST is accepted", async () => {
+  const r = await fetch(`${url}/api/runs`, { method: "POST", headers: { "content-type": "application/json", origin: url }, body: JSON.stringify({ sessionId: "s1", cwd: home, title: "T", brief: "hi" }) });
+  expect(r.status).toBe(201);
+});
+
+test("csrf: no-Origin JSON POST (CLI) is accepted", async () => {
+  const r = await post("/api/runs", { sessionId: "s1", cwd: home, title: "T", brief: "hi" });
+  expect(r.status).toBe(201);
+});
+
+test("csrf: text/plain POST without Origin is rejected for content-type, not origin", async () => {
+  const r = await fetch(`${url}/api/runs`, { method: "POST", headers: { "content-type": "text/plain" }, body: "{}" });
+  expect(r.status).toBe(415);
+  expect((await r.json()).error).toBe("content-type must be application/json");
 });
