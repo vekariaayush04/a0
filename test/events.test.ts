@@ -22,3 +22,12 @@ test("summarize error run", async () => {
   expect(s.error).toContain("401");
   expect(s.result).toBe("");
 });
+
+test("summarize real pi run with tool calls", async () => {
+  const events = await load("tools.jsonl");
+  expect(events.some(e => e.type === "tool_execution_start")).toBe(true);
+  const s = summarize(events);
+  expect(s.result.length).toBeGreaterThan(0);
+  expect(s.cost).toBeGreaterThan(0);
+  expect(s.error).toBeUndefined();
+});

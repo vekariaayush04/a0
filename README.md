@@ -77,6 +77,22 @@ The default is `opencode-go` / `deepseek-v4.1-flash`. Override per run with
 `--provider` and `--model`, or tell Claude which model to use and the skill
 passes it through. Any provider Pi can authenticate works.
 
+### Model tiers
+
+Instead of naming a model, pass `--tier l1|l2|l3`:
+
+- `l1` — Muse Spark (`muse-spark-1.3-contributor`), cheap: read-only briefs
+  such as scouting a codebase, summarising files, or research.
+- `l2` — DeepSeek (`deepseek-v4.1-flash`), the default: editing, tests,
+  builds.
+- `l3` — GLM 5.3 (`glm-5.3`), strongest: unclear-cause debugging and
+  tricky refactors, or anything an `l2` run failed twice.
+
+The skill picks the tier for you based on the brief and escalates one tier
+after a failure. Pi runs may also spawn pi-subagents at a different model
+(for example, a scout subagent at `muse-spark-1.3-contributor`) within a
+single run.
+
 ## Configuration
 
 | Variable | Default | Meaning |
@@ -89,13 +105,16 @@ passes it through. Any provider Pi can authenticate works.
 | `SENTINEL_THINKING` | `high` | Default thinking level |
 | `SENTINEL_CONCURRENCY` | `4` | Max simultaneous Pi processes |
 | `SENTINEL_TIMEOUT` | `1800` | Per-run timeout in seconds |
+| `SENTINEL_TIER_L1` | `muse-spark-1.3-contributor` | Model for `--tier l1` |
+| `SENTINEL_TIER_L2` | `deepseek-v4.1-flash` (`SENTINEL_MODEL`) | Model for `--tier l2` |
+| `SENTINEL_TIER_L3` | `glm-5.3` | Model for `--tier l3` |
 
 ## How a run works
 
 1. The CLI posts the brief to the daemon with the Claude session id and cwd.
 2. The daemon queues it, then spawns
    `pi -p --mode json --session-dir <runDir>/pi-session --provider … --model …`
-   with the brief attached as a file.
+   with the brief passed inline as the last argument.
 3. Every JSON event Pi prints is appended to `events.jsonl` and streamed to
    the UI over SSE.
 4. On exit, the final assistant message becomes `result.md`, tokens and cost

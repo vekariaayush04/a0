@@ -37,9 +37,11 @@ editing briefs in the UI, OpenRouter (the stored key is dead).
     `stderr.log`, `result.md`, `pi-session/` (Pi's own session dir via
     `--session-dir`).
 - Spawns runs as
-  `pi -p --mode json --session-dir <runDir>/pi-session --provider <p> --model <m> --thinking <level> -- @brief.md`
-  with `cwd` set to the run's working directory. The brief is attached as a
-  file argument rather than inline to avoid argument length limits.
+  `pi -p --mode json --session-dir <runDir>/pi-session --provider <p> --model <m> --thinking <level> -- <brief text>`
+  with `cwd` set to the run's working directory. The brief is passed inline
+  as the final argument (not as a `@brief.md` file reference); a copy is
+  still written to `<runDir>/brief.md` for inspection. Briefs are capped
+  at 100 000 characters.
 - Parses each stdout line as a Pi event. `session` gives the Pi session id;
   `message_end` with role assistant gives text, usage and cost; tool call
   events are stored verbatim; `agent_end` plus process exit finalises the run.
@@ -55,7 +57,7 @@ Thin HTTP client used by the skill and by humans. All commands print JSON
 with `--json` (default when stdout is not a TTY).
 
 ```
-sentinel run --session <claudeSessionId> --cwd <dir> --title <t> --brief-file <f> [--model m] [--provider p] [--thinking l] [--wait] [--timeout s]
+sentinel run --session <claudeSessionId> --cwd <dir> --title <t> --brief-file <f> [--model m] [--tier l1|l2|l3] [--provider p] [--thinking l] [--wait] [--timeout s]
 sentinel wait <runId...>          # blocks until all given runs finish, prints results
 sentinel status [--session id]    # sessions and runs summary
 sentinel logs <runId> [--follow]  # events rendered as text
@@ -87,6 +89,16 @@ Rules: heavy reasoning stays in Claude; Pi runs get concrete, bounded
 briefs; never dispatch a brief without acceptance criteria; the user can
 name a model and it goes into `--model`.
 
+**Model tiers.** The skill picks `--tier l1|l2|l3` per brief: `l1` (Muse
+Spark) for read-heavy briefs — reading or summarising more than ~10 files,
+research, scouting, log analysis, fact collection with at most trivial
+edits; `l2` (DeepSeek, the default) for editing code, running tests and
+builds; `l3` (GLM 5.3) for debugging with unclear cause, tricky refactors,
+or anything a previous `l2` run failed twice. The skill escalates one tier
+after a failure and never starts at `l3`. A user-named model overrides the
+tier via `--model`. Pi's pi-subagents extension lets a single `l2` run fan
+out a read-heavy scout at `muse-spark-1.3-contributor` before editing.
+
 ### UI
 
 Single `index.html` served at `/`, no framework, no build step.
@@ -113,6 +125,11 @@ Environment variables, all optional: `SENTINEL_PORT` (4747), `SENTINEL_HOME`
 (`~/.local/share/sentinel`), `SENTINEL_PI_BIN` (`pi`), `SENTINEL_PROVIDER`
 (`opencode-go`), `SENTINEL_MODEL` (`deepseek-v4.1-flash`), `SENTINEL_THINKING`
 (`high`), `SENTINEL_CONCURRENCY` (4), `SENTINEL_TIMEOUT` (1800 seconds).
+
+**Model tiers.** `SENTINEL_TIER_L1` (`muse-spark-1.3-contributor`),
+`SENTINEL_TIER_L2` (defaults to `SENTINEL_MODEL`, i.e. `deepseek-v4.1-flash`),
+`SENTINEL_TIER_L3` (`glm-5.3`). `sentinel run --tier l1|l2|l3` resolves to
+the corresponding model; `--model` overrides a tier when set.
 
 ## Data model
 
