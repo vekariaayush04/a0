@@ -28,15 +28,18 @@ import {
   useStore,
 } from "./state/store";
 
+const EMPTY_RUNS: Run[] = [];
+
 export default function App() {
   const sessions = useStore((s) => s.sessions);
   const selectedSession = useStore((s) => s.selectedSession);
   const selectedRun = useStore((s) => s.selectedRun);
   const selectedSub = useStore((s) => s.selectedSub);
   const view = useStore((s) => s.view);
-  const runs = useStore((s) =>
-    selectedSession ? (s.runsBySession[selectedSession] ?? []) : [],
+  const runsMaybe = useStore((s) =>
+    selectedSession ? s.runsBySession[selectedSession] : undefined,
   );
+  const runs = runsMaybe ?? EMPTY_RUNS;
   const route = useRoute();
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
