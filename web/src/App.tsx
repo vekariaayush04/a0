@@ -467,7 +467,7 @@ export default function App() {
             />
 
             <main className="min-h-0 flex-1">
-              {!selectedSession ? (
+              {route.name === "home" ? (
                 <Pane paneKey="home">
                   <HomeView />
                 </Pane>
