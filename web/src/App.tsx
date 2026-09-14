@@ -5,11 +5,7 @@ import { useEffect, useRef } from "react";
 import { TopBar } from "./components/TopBar";
 import { Rail } from "./components/Rail";
 import { RunList } from "./components/RunList";
-import { Header } from "./components/RunDetail/Header";
-import { Timeline } from "./components/RunDetail/Timeline";
-import { Log } from "./components/RunDetail/Log";
-import { StatsStrip } from "./components/RunDetail/StatsStrip";
-import { Brief } from "./components/RunDetail/Brief";
+import { RunDetail } from "./components/RunDetail";
 import { TreeView } from "./components/Tree/TreeView";
 import { SubagentView } from "./components/Tree/SubagentView";
 import { getSessionRuns, getSessions, getStats } from "./api/client";
@@ -155,15 +151,7 @@ export default function App() {
           {selectedSub !== null ? (
             <SubagentView />
           ) : selectedRun ? (
-            <div className="flex h-full flex-col">
-              <Header />
-              <Brief />
-              <Timeline />
-              <div className="min-h-0 flex-1 overflow-y-auto">
-                <Log />
-              </div>
-              <StatsStrip />
-            </div>
+            <RunDetail />
           ) : (
             <Empty title="No run selected" hint="Choose a run to see its log." />
           )}

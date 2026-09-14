@@ -1,14 +1,16 @@
 // Run detail header: title, status/model/tier/started pills, elapsed ticker
-// and a Cancel button for active runs.
+// and a Cancel button for active runs. Memoized so live log events do not
+// re-render it; the elapsed ticker lives inside this component.
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import { cancelRun } from "../../api/client";
+import type { Run } from "../../api/types";
 import { fmtMs } from "../../lib/format";
 import { useStore } from "../../state/store";
 import { Glyph } from "../../ui/Glyph";
 import { Pill } from "../../ui/Pill";
-import { setRun, useNow, useRunDetail } from "./data";
 import { isTerminal, tierOf } from "./derive";
+import { useNow } from "./hooks";
 
 function clockTime(ts: number | null): string | null {
   if (ts === null) return null;
@@ -18,8 +20,12 @@ function clockTime(ts: number | null): string | null {
   });
 }
 
-export function Header() {
-  const { run } = useRunDetail();
+export type HeaderProps = {
+  run: Run | null;
+  onRun: (run: Run) => void;
+};
+
+export const Header = memo(function Header({ run, onRun }: HeaderProps) {
   const tiers = useStore((store) => store.stats?.tiers);
   const [cancelling, setCancelling] = useState(false);
 
@@ -43,7 +49,7 @@ export function Header() {
     setCancelling(true);
     try {
       const next = await cancelRun(run.id);
-      setRun(next);
+      onRun(next);
     } catch {
       /* the status stream may still settle the run */
     } finally {
@@ -93,4 +99,4 @@ export function Header() {
       </div>
     </header>
   );
-}
+});

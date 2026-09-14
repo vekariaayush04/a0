@@ -17,6 +17,13 @@ import { Tooltip } from "../../ui/Tooltip";
 import { useStore } from "../../state/store";
 import { layoutSession, type Layout, type LayoutNode } from "./layout";
 
+/** True when this subagent or any descendant is still running. */
+function subagentsRunning(nodes: SubagentNode[]): boolean {
+  return nodes.some(
+    (node) => node.status === "running" || subagentsRunning(node.children),
+  );
+}
+
 const FONT_TITLE =
   '500 13px -apple-system, "SF Pro Text", system-ui, sans-serif';
 const FONT_MONO = '10px ui-monospace, "SF Mono", Menlo, monospace';
@@ -441,9 +448,25 @@ export function TreeView() {
   const [tree, setTree] = useState<SessionTree | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
   const requestId = useRef(0);
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeSession = useRef<string | null>(null);
+
+  // Extents of running runs/subagents end at `now`, so tick once a second
+  // while anything is live to let them grow without a refetch.
+  const anyRunning =
+    tree !== null &&
+    tree.children.some(
+      (run) => run.status === "running" || subagentsRunning(run.children),
+    );
+
+  useEffect(() => {
+    if (!anyRunning) return;
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [anyRunning]);
 
   const load = useCallback(async (id: string) => {
     const token = ++requestId.current;
@@ -500,7 +523,10 @@ export function TreeView() {
     [],
   );
 
-  const layout = useMemo(() => (tree ? layoutSession(tree) : null), [tree]);
+  const layout = useMemo(
+    () => (tree ? layoutSession(tree, { now }) : null),
+    [tree, now],
+  );
 
   const onOpen = useCallback((node: LayoutNode) => {
     if (node.kind === "run" && node.runId) {

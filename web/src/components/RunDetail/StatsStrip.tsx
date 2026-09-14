@@ -1,10 +1,12 @@
 // Sticky bottom stats strip: tokens, cost, duration, exit code, Pi session id
-// (click to copy) and any run error.
+// (click to copy) and any run error. Memoized so live log events do not
+// re-render it.
 
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
+import type { Run } from "../../api/types";
 import { fmtCost, fmtMs } from "../../lib/format";
-import { useNow, useRunDetail } from "./data";
 import { firstLine, runDuration } from "./derive";
+import { useNow } from "./hooks";
 
 async function copyText(text: string): Promise<boolean> {
   try {
@@ -32,8 +34,11 @@ async function copyText(text: string): Promise<boolean> {
   }
 }
 
-export function StatsStrip() {
-  const { run } = useRunDetail();
+export type StatsStripProps = {
+  run: Run | null;
+};
+
+export const StatsStrip = memo(function StatsStrip({ run }: StatsStripProps) {
   const [copied, setCopied] = useState(false);
   const running = run?.status === "running";
   const now = useNow(running);
@@ -96,4 +101,4 @@ export function StatsStrip() {
       ) : null}
     </div>
   );
-}
+});

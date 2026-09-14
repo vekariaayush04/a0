@@ -29,11 +29,7 @@ export function Rail() {
       {sessions.length === 0 ? (
         <Empty
           title="No sessions yet"
-          hint={
-            <>
-              In Claude Code, say <code className="font-mono">“use sentinel to …”</code>
-            </>
-          }
+          hint="In Claude Code, say “use sentinel to …”"
         />
       ) : (
         <div className="flex flex-col">

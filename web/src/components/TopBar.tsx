@@ -1,12 +1,9 @@
 // Real top bar: brand, live stats chips, theme toggle, `?` key overlay.
 
-import { useEffect, useRef, useState } from "react";
-import { getStats } from "../api/client";
-import { useGlobalStatus } from "../api/sse";
-import type { Run } from "../api/types";
+import { useState } from "react";
 import { fmtCost } from "../lib/format";
 import { useKeys } from "../lib/keys";
-import { cycleTheme, setStats, useStore } from "../state/store";
+import { cycleTheme, useStore } from "../state/store";
 import { Auto, Mark, Moon, Sun } from "../ui/icons";
 import { KeyOverlay } from "./KeyOverlay";
 
@@ -32,28 +29,8 @@ export function TopBar() {
   const stats = useStore((s) => s.stats);
   const theme = useStore((s) => s.theme);
   const [showKeys, setShowKeys] = useState(false);
-  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Chips read fresh totals shortly after any run changes state.
-  useGlobalStatus<Run>(() => {
-    if (refreshTimer.current !== null) clearTimeout(refreshTimer.current);
-    refreshTimer.current = setTimeout(() => {
-      refreshTimer.current = null;
-      void getStats()
-        .then(setStats)
-        .catch(() => {
-          /* daemon transient */
-        });
-    }, 300);
-  });
-
-  useEffect(
-    () => () => {
-      if (refreshTimer.current !== null) clearTimeout(refreshTimer.current);
-    },
-    [],
-  );
-
+  // App owns the single /api/events subscription and keeps `stats` fresh.
   useKeys({
     "?": () => setShowKeys((open) => !open),
     t: () => cycleTheme(),

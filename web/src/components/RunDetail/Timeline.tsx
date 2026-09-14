@@ -1,11 +1,18 @@
 // Step timeline: wrapping chips derived from the event stream. Chips scroll
 // the matching Log row into view; the final chip pulses while the run is live.
+// Entries are derived once in the RunDetail parent and passed in.
 
-import { useMemo } from "react";
+import { memo } from "react";
+import type { Run } from "../../api/types";
 import { fmtMs } from "../../lib/format";
 import { Glyph } from "../../ui/Glyph";
-import { useRunDetail } from "./data";
-import { deriveLog, durationBetween, firstLine, isTerminal, logDomId, type LogEntry } from "./derive";
+import {
+  durationBetween,
+  firstLine,
+  isTerminal,
+  logDomId,
+  type LogEntry,
+} from "./derive";
 
 function chipText(entry: LogEntry): string {
   if (entry.kind === "assistant") return `✎ ${firstLine(entry.text, 48)}`;
@@ -25,10 +32,12 @@ function scrollToLog(id: string): void {
   element?.scrollIntoView({ block: "center", behavior: "smooth" });
 }
 
-export function Timeline() {
-  const { run, events } = useRunDetail();
-  const entries = useMemo(() => deriveLog(events), [events]);
+export type TimelineProps = {
+  entries: LogEntry[];
+  run: Run | null;
+};
 
+export const Timeline = memo(function Timeline({ entries, run }: TimelineProps) {
   if (!run || entries.length === 0) return null;
 
   const terminal = isTerminal(run.status);
@@ -77,4 +86,4 @@ export function Timeline() {
       })}
     </div>
   );
-}
+});

@@ -84,6 +84,11 @@ export type LayoutOptions = {
   pxPerMs?: number;
   minScale?: number;
   maxScale?: number;
+  /**
+   * Wall-clock time used as the end of still-running extents. Defaults to
+   * `Date.now()`; pass a fixed value in tests for deterministic geometry.
+   */
+  now?: number;
 };
 
 export type Layout = {
@@ -173,16 +178,18 @@ function elbow(
 function collectTimes(
   nodes: SubagentNode[],
   out: number[],
+  now: number,
 ): void {
   for (const node of nodes) {
     if (node.started !== null) out.push(node.started);
     if (node.ended !== null) out.push(node.ended);
+    else if (node.status === "running") out.push(now);
     if (node.spawnedAt !== null) out.push(node.spawnedAt);
     for (const tool of node.tools) {
       if (tool.t0 !== null) out.push(tool.t0);
       if (tool.t1 !== null) out.push(tool.t1);
     }
-    collectTimes(node.children, out);
+    collectTimes(node.children, out, now);
   }
 }
 
@@ -229,6 +236,7 @@ export function layoutSession(
   const padBottom = opts.padBottom ?? DEFAULTS.padBottom;
   const minScale = opts.minScale ?? DEFAULTS.minScale;
   const maxScale = opts.maxScale ?? DEFAULTS.maxScale;
+  const now = opts.now ?? Date.now();
 
   const axisLeft = gutter;
 
@@ -237,11 +245,12 @@ export function layoutSession(
   for (const run of tree.children) {
     if (run.started !== null) times.push(run.started);
     if (run.ended !== null) times.push(run.ended);
+    else if (run.status === "running") times.push(now);
     for (const tool of run.tools) {
       if (tool.t0 !== null) times.push(tool.t0);
       if (tool.t1 !== null) times.push(tool.t1);
     }
-    collectTimes(run.children, times);
+    collectTimes(run.children, times, now);
   }
   const t0 = times.length > 0 ? Math.min(...times) : 0;
   const t1 = times.length > 0 ? Math.max(...times) : t0;
@@ -274,7 +283,7 @@ export function layoutSession(
 
     const x = axisLeft + lane * (nodeWidth + gap);
     const y = yFor(start);
-    const extentEnd = yFor(run.ended ?? start);
+    const extentEnd = yFor(run.ended ?? (run.status === "running" ? now : start));
     const node: LayoutNode = {
       id: `run:${run.id}`,
       kind: "run",
@@ -387,7 +396,10 @@ export function layoutSession(
             ? {
                 y1: yFor(child.started),
                 y2: Math.max(
-                  yFor(child.ended ?? child.started),
+                  yFor(
+                    child.ended ??
+                      (child.status === "running" ? now : child.started),
+                  ),
                   yFor(child.started) + 6,
                 ),
               }

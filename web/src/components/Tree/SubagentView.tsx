@@ -18,35 +18,7 @@ import { Glyph } from "../../ui/Glyph";
 import { Pill } from "../../ui/Pill";
 import { ChevronLeft } from "../../ui/icons";
 import { useStore } from "../../state/store";
-
-function safeJson(value: unknown): string {
-  if (typeof value === "string") return value;
-  try {
-    return JSON.stringify(value, null, 2) ?? String(value);
-  } catch {
-    return String(value);
-  }
-}
-
-function cap(value: string, max = 4000): string {
-  return value.length > max ? `${value.slice(0, max)}\n…` : value;
-}
-
-/** Short label for a tool call, mirroring the daemon's `target` heuristics. */
-function targetOf(args: unknown): string {
-  if (args && typeof args === "object") {
-    const record = args as Record<string, unknown>;
-    if (typeof record.path === "string" && record.path) {
-      const trimmed = record.path.replace(/\/+$/, "");
-      const slash = trimmed.lastIndexOf("/");
-      return slash === -1 ? trimmed : trimmed.slice(slash + 1);
-    }
-    if (typeof record.command === "string") return record.command.slice(0, 24);
-    if (typeof record.query === "string") return record.query.slice(0, 24);
-    if (typeof record.agent === "string") return record.agent;
-  }
-  return "";
-}
+import { stringifyCapped, toolTarget } from "../RunDetail/derive";
 
 function findSubagent(
   nodes: SubagentNode[],
@@ -73,7 +45,9 @@ function TextBlock({ text }: { text: string }) {
 function ToolRecord({ record }: { record: TranscriptRecord }) {
   const tool = record.tool;
   if (!tool) return null;
-  const target = targetOf(tool.args);
+  const target = toolTarget(tool.args);
+  const args = stringifyCapped(tool.args);
+  const result = stringifyCapped(tool.result);
   return (
     <details
       className={`group rounded-6 ${
@@ -94,7 +68,8 @@ function ToolRecord({ record }: { record: TranscriptRecord }) {
         <div>
           <p className="text-11 uppercase tracking-[0.08em] text-fg3">args</p>
           <pre className="mt-1 max-h-80 overflow-auto whitespace-pre-wrap break-words font-mono text-11 text-fg2">
-            {cap(safeJson(tool.args))}
+            {args.text}
+            {args.truncated ? "\n… truncated" : ""}
           </pre>
         </div>
         {tool.result !== null && tool.result !== undefined ? (
@@ -103,7 +78,8 @@ function ToolRecord({ record }: { record: TranscriptRecord }) {
               result
             </p>
             <pre className="mt-1 max-h-80 overflow-auto whitespace-pre-wrap break-words font-mono text-11 text-fg2">
-              {cap(safeJson(tool.result))}
+              {result.text}
+              {result.truncated ? "\n… truncated" : ""}
             </pre>
           </div>
         ) : null}

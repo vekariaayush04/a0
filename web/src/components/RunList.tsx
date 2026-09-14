@@ -1,7 +1,7 @@
 // Run list for the selected session: header with a List | Tree segmented
 // control, then 60px rows with a status glyph, tier pill and live metadata.
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Run, Stats } from "../api/types";
 import { ago, fmtCost, fmtMs, shortPath } from "../lib/format";
 import { useKeys } from "../lib/keys";
@@ -30,6 +30,17 @@ function duration(run: Run, now: number): string {
   return fmtMs(end - run.started);
 }
 
+/** A running row ticks its elapsed time once a second on its own, so the rest
+ *  of the list neither re-renders nor re-sorts every second. */
+function LiveDuration({ run }: { run: Run }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  return <>{duration(run, now)}</>;
+}
+
 // Stable empty array so `useStore` never sees a fresh snapshot reference.
 const EMPTY_RUNS: Run[] = [];
 
@@ -47,16 +58,12 @@ export function RunList() {
   const ordered = runs.slice().sort((a, b) => (b.created || 0) - (a.created || 0));
   const session = sessions.find((s) => s.id === selectedSession) ?? null;
 
-  // Tick every second while something is running, otherwise every 30s for `ago`.
-  const anyRunning = runs.some((run) => run.status === "running");
+  // `ago` only needs a slow tick; running rows use LiveDuration for seconds.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    const timer = window.setInterval(
-      () => setNow(Date.now()),
-      anyRunning ? 1000 : 30000,
-    );
+    const timer = window.setInterval(() => setNow(Date.now()), 30000);
     return () => window.clearInterval(timer);
-  }, [anyRunning]);
+  }, []);
 
   // Keep the selected row in view when it changes via keyboard.
   const rowRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -128,7 +135,7 @@ export function RunList() {
             })}
           </div>
         </div>
-        {cwds.length > 1 ? (
+        {cwds.length > 0 ? (
           <p className="mt-1 truncate font-mono text-11 text-fg3">
             {cwds.map(shortPath).join("  ·  ")}
           </p>
@@ -139,13 +146,15 @@ export function RunList() {
         {ordered.map((run) => {
           const selected = run.id === selectedRun;
           const tier = tierOf(run.model, tiers);
-          const meta = [
-            run.model,
-            duration(run, now),
-            run.cost > 0 ? fmtCost(run.cost) : "",
-          ]
-            .filter(Boolean)
-            .join(" · ");
+          const meta: ReactNode[] = [
+            run.model || null,
+            run.status === "running" ? (
+              <LiveDuration key="duration" run={run} />
+            ) : (
+              duration(run, now) || null
+            ),
+            run.cost > 0 ? fmtCost(run.cost) : null,
+          ].filter((part) => part !== null && part !== "");
 
           return (
             <button
@@ -178,7 +187,14 @@ export function RunList() {
                 </span>
               </span>
 
-              <span className="truncate text-11 text-fg3">{meta}</span>
+              <span className="truncate text-11 text-fg3">
+                {meta.map((part, index) => (
+                  <Fragment key={index}>
+                    {index > 0 ? " · " : ""}
+                    {part}
+                  </Fragment>
+                ))}
+              </span>
             </button>
           );
         })}

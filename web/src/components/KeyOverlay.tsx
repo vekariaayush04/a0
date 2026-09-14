@@ -11,11 +11,12 @@ const KEYS: Array<[string, string]> = [
   ["c", "cancel run"],
   ["g", "toggle list / tree"],
   ["t", "cycle theme"],
-  ["?", "toggle this overlay"],
+  ['?', "toggle this overlay"],
 ];
 
 export function KeyOverlay({ onClose }: { onClose: () => void }) {
-  useKeys({ Escape: onClose, "?": onClose });
+  // `?` is bound once in the TopBar; this overlay closes via Esc or its button.
+  useKeys({ Escape: onClose });
 
   return (
     <div

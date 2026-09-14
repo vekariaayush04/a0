@@ -1,14 +1,13 @@
 // Collapsible brief: the first user message from the run's event stream.
-// Closed by default.
+// Closed by default. The text is derived once in the RunDetail parent.
 
-import { useMemo } from "react";
-import { useRunDetail } from "./data";
-import { briefText } from "./derive";
+import { memo } from "react";
 
-export function Brief() {
-  const { events } = useRunDetail();
-  const text = useMemo(() => briefText(events), [events]);
+export type BriefProps = {
+  text: string;
+};
 
+export const Brief = memo(function Brief({ text }: BriefProps) {
   if (!text) return null;
 
   return (
@@ -24,4 +23,4 @@ export function Brief() {
       </p>
     </details>
   );
-}
+});

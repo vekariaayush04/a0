@@ -1,15 +1,14 @@
 // Live run log: assistant text, expandable tool rows and error blocks. New
 // entries fade+slide in; the log auto-scrolls while pinned to the bottom and
-// offers a "Jump to latest" chip once the user scrolls up.
+// offers a "Jump to latest" chip once the user scrolls up. Entries are derived
+// once in the RunDetail parent; rows are memoized so status-only renders do
+// not rebuild the whole log.
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { fmtMs } from "../../lib/format";
 import { Glyph } from "../../ui/Glyph";
-import { useRunDetail } from "./data";
 import {
-  deriveLog,
   durationBetween,
-  isTerminal,
   logDomId,
   stringifyCapped,
   type LogEntry,
@@ -62,10 +61,20 @@ function JsonBlock({
   );
 }
 
-function ToolRow({ tool }: { tool: Extract<LogEntry, { kind: "tool" }> }) {
+function ToolRow({
+  tool,
+  terminal,
+}: {
+  tool: Extract<LogEntry, { kind: "tool" }>;
+  terminal: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const duration = durationBetween(tool.startTs, tool.endTs);
-  const running = tool.startTs !== null && tool.endTs === null;
+  const unresolved = tool.startTs !== null && tool.endTs === null;
+  // A tool start with no end is only "running" while the run is live. Once the
+  // run is terminal it can never finish, so show it as failed like Timeline.
+  const running = unresolved && !terminal;
+  const failed = tool.isError || (unresolved && terminal);
   const args = useMemo(() => stringifyCapped(tool.args), [tool.args]);
   const result = useMemo(() => stringifyCapped(tool.result), [tool.result]);
 
@@ -77,7 +86,7 @@ function ToolRow({ tool }: { tool: Extract<LogEntry, { kind: "tool" }> }) {
         className="flex w-full items-center gap-2 rounded-6 px-1 py-0.5 text-left font-mono text-11 text-fg2 transition-colors duration-150 hover:bg-hover"
       >
         <span className="w-3 shrink-0 text-fg3">{open ? "▾" : "▸"}</span>
-        {tool.isError ? <Glyph status="failed" size={10} /> : null}
+        {failed ? <Glyph status="failed" size={10} /> : null}
         <span className="truncate text-fg" title={`${tool.name} ${tool.target}`}>
           {tool.name}
           {tool.target ? ` ${tool.target}` : ""}
@@ -86,6 +95,8 @@ function ToolRow({ tool }: { tool: Extract<LogEntry, { kind: "tool" }> }) {
           <span className="shrink-0 text-fg3">· {fmtMs(duration)}</span>
         ) : running ? (
           <span className="shrink-0 text-accent">· running…</span>
+        ) : unresolved ? (
+          <span className="shrink-0 text-fg3">· no result</span>
         ) : null}
       </button>
 
@@ -101,7 +112,13 @@ function ToolRow({ tool }: { tool: Extract<LogEntry, { kind: "tool" }> }) {
   );
 }
 
-function LogBody({ entry }: { entry: LogEntry }) {
+const LogBody = memo(function LogBody({
+  entry,
+  terminal,
+}: {
+  entry: LogEntry;
+  terminal: boolean;
+}) {
   if (entry.kind === "assistant") {
     return (
       <p className="whitespace-pre-wrap py-2 text-13 leading-[1.55] text-fg">
@@ -118,12 +135,15 @@ function LogBody({ entry }: { entry: LogEntry }) {
       </div>
     );
   }
-  return <ToolRow tool={entry} />;
-}
+  return <ToolRow tool={entry} terminal={terminal} />;
+});
 
-export function Log() {
-  const { run, events } = useRunDetail();
-  const entries = useMemo(() => deriveLog(events), [events]);
+export type LogProps = {
+  entries: LogEntry[];
+  terminal: boolean;
+};
+
+export function Log({ entries, terminal }: LogProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const atBottomRef = useRef(true);
   const [showJump, setShowJump] = useState(false);
@@ -151,7 +171,6 @@ export function Log() {
     setShowJump(false);
   };
 
-  const terminal = run ? isTerminal(run.status) : false;
   const emptyText = terminal ? "No output recorded." : "Waiting for output…";
 
   return (
@@ -166,7 +185,7 @@ export function Log() {
         ) : null}
         {entries.map((entry) => (
           <AnimatedEntry key={entry.id} id={entry.id}>
-            <LogBody entry={entry} />
+            <LogBody entry={entry} terminal={terminal} />
           </AnimatedEntry>
         ))}
       </div>
