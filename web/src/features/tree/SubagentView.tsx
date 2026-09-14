@@ -18,7 +18,7 @@ import { Glyph } from "../../ui/Glyph";
 import { Pill } from "../../ui/Pill";
 import { ChevronLeft } from "../../ui/icons";
 import { useStore } from "../../state/store";
-import { stringifyCapped, toolTarget } from "../RunDetail/derive";
+import { stringifyCapped, toolTarget } from "../runs/derive";
 
 function findSubagent(
   nodes: SubagentNode[],

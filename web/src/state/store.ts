@@ -59,6 +59,15 @@ export function applyTheme(theme: Theme): void {
   root.style.colorScheme = resolved;
 }
 
+/** `?view=tree` forces the runs panel into tree mode, for screenshot capture. */
+function viewFromSearch(): View | null {
+  if (typeof window === "undefined") return null;
+  const value = new URLSearchParams(window.location.search).get("view");
+  if (value === "tree") return "tree";
+  if (value === "list") return "list";
+  return null;
+}
+
 let state: State = {
   sessions: [],
   runsBySession: {},
@@ -66,7 +75,7 @@ let state: State = {
   selectedSession: null,
   selectedRun: null,
   selectedSub: null,
-  view: "list",
+  view: viewFromSearch() ?? "list",
   theme: readStoredTheme(),
   overlayOpen: false,
 };

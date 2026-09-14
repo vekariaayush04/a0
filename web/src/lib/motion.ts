@@ -26,17 +26,20 @@ export const transition: Transition = { duration: DURATION.base, ease: EASE };
 
 /** The house enter: opacity 0 -> 1 with a 6px rise. */
 export function riseVariants(reduced: boolean): Variants {
+  // With reduced motion the "hidden" state is already the final state: the
+  // element must never depend on an animation frame to become visible.
+  if (reduced) return { hidden: { opacity: 1, y: 0 }, visible: { opacity: 1, y: 0 }, exit: { opacity: 1 } };
   return {
-    hidden: { opacity: 0, y: reduced ? 0 : 6 },
+    hidden: { opacity: 0, y: 6 },
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: reduced ? 0 : DURATION.base, ease: EASE },
+      transition: { duration: DURATION.base, ease: EASE },
     },
     exit: {
       opacity: 0,
-      y: reduced ? 0 : -4,
-      transition: { duration: reduced ? 0 : DURATION.fast, ease: EASE },
+      y: -4,
+      transition: { duration: DURATION.fast, ease: EASE },
     },
   };
 }
@@ -44,16 +47,17 @@ export function riseVariants(reduced: boolean): Variants {
 /** Route/pane crossfade. Slightly slower and without the y travel, so the
  *  whole pane does not appear to jump when the content is tall. */
 export function paneVariants(reduced: boolean): Variants {
+  if (reduced) return { hidden: { opacity: 1, y: 0 }, visible: { opacity: 1, y: 0 }, exit: { opacity: 1 } };
   return {
-    hidden: { opacity: 0, y: reduced ? 0 : 4 },
+    hidden: { opacity: 0, y: 4 },
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: reduced ? 0 : DURATION.slow, ease: EASE },
+      transition: { duration: DURATION.slow, ease: EASE },
     },
     exit: {
       opacity: 0,
-      transition: { duration: reduced ? 0 : DURATION.fast, ease: EASE },
+      transition: { duration: DURATION.fast, ease: EASE },
     },
   };
 }

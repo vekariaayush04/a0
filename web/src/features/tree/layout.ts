@@ -177,19 +177,26 @@ function elbow(
   ];
 }
 
+/** True for a usable epoch-ms timestamp. The daemon may omit `t0`/`t1` on a
+ *  tool call entirely, and a single undefined poisons the whole time scale
+ *  (t0/t1 -> pxPerMs -> every node y -> the SVG height attribute). */
+function isTime(value: number | null | undefined): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
 function collectTimes(
   nodes: SubagentNode[],
   out: number[],
   now: number,
 ): void {
   for (const node of nodes) {
-    if (node.started !== null) out.push(node.started);
-    if (node.ended !== null) out.push(node.ended);
+    if (isTime(node.started)) out.push(node.started);
+    if (isTime(node.ended)) out.push(node.ended);
     else if (node.status === "running") out.push(now);
-    if (node.spawnedAt !== null) out.push(node.spawnedAt);
+    if (isTime(node.spawnedAt)) out.push(node.spawnedAt);
     for (const tool of node.tools) {
-      if (tool.t0 !== null) out.push(tool.t0);
-      if (tool.t1 !== null) out.push(tool.t1);
+      if (isTime(tool.t0)) out.push(tool.t0);
+      if (isTime(tool.t1)) out.push(tool.t1);
     }
     collectTimes(node.children, out, now);
   }
@@ -203,6 +210,7 @@ function toolTicks(
 ): void {
   for (let i = 0; i < tools.length; i++) {
     const tool = tools[i];
+    if (!isTime(tool.t0)) continue;
     out.push({
       id: `${node.id}/tool/${i}`,
       nodeId: node.id,
@@ -245,12 +253,12 @@ export function layoutSession(
   // ---- time range / scale ---------------------------------------------
   const times: number[] = [];
   for (const run of tree.children) {
-    if (run.started !== null) times.push(run.started);
-    if (run.ended !== null) times.push(run.ended);
+    if (isTime(run.started)) times.push(run.started);
+    if (isTime(run.ended)) times.push(run.ended);
     else if (run.status === "running") times.push(now);
     for (const tool of run.tools) {
-      if (tool.t0 !== null) times.push(tool.t0);
-      if (tool.t1 !== null) times.push(tool.t1);
+      if (isTime(tool.t0)) times.push(tool.t0);
+      if (isTime(tool.t1)) times.push(tool.t1);
     }
     collectTimes(run.children, times, now);
   }
@@ -447,9 +455,12 @@ export function layoutSession(
   }
   maxY = Math.max(maxY, axisBottom);
 
+  const width = maxX + padRight;
+  const height = maxY + padBottom;
+
   return {
-    width: maxX + padRight,
-    height: maxY + padBottom,
+    width: Number.isFinite(width) ? width : DEFAULTS.gutter * 2,
+    height: Number.isFinite(height) ? height : axisTop + padBottom,
     gutter,
     axisLeft,
     axisTop,
