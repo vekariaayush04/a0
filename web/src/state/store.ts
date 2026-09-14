@@ -22,7 +22,17 @@ export type State = {
 
 const THEME_KEY = "sentinel.theme";
 
+/** `?theme=light|dark|system` wins over the stored choice, for screenshotting. */
+function themeFromSearch(): Theme | null {
+  if (typeof window === "undefined") return null;
+  const value = new URLSearchParams(window.location.search).get("theme");
+  if (value === "system" || value === "light" || value === "dark") return value;
+  return null;
+}
+
 function readStoredTheme(): Theme {
+  const forced = themeFromSearch();
+  if (forced) return forced;
   try {
     const value = localStorage.getItem(THEME_KEY);
     if (value === "system" || value === "light" || value === "dark") return value;
@@ -32,10 +42,21 @@ function readStoredTheme(): Theme {
   return "system";
 }
 
+/** True when "system" currently resolves to dark. */
+function systemPrefersDark(): boolean {
+  if (typeof window === "undefined" || !window.matchMedia) return false;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+/** Paint the theme onto <html>. shadcn keys off `.dark`; the legacy Tree
+ *  screens key off `[data-theme]`. Both are written so the two agree. */
 export function applyTheme(theme: Theme): void {
   if (typeof document === "undefined") return;
-  if (theme === "system") document.documentElement.removeAttribute("data-theme");
-  else document.documentElement.setAttribute("data-theme", theme);
+  const root = document.documentElement;
+  const resolved = theme === "system" ? (systemPrefersDark() ? "dark" : "light") : theme;
+  root.setAttribute("data-theme", resolved);
+  root.classList.toggle("dark", resolved === "dark");
+  root.style.colorScheme = resolved;
 }
 
 let state: State = {

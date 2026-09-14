@@ -113,7 +113,7 @@ function SvgGlyph({
         cx={cx}
         cy={cy}
         r={4}
-        fill="var(--accent)"
+        fill="var(--live-color)"
         className="pulse"
         style={{ transformBox: "fill-box", transformOrigin: "center" }}
       />

@@ -17,7 +17,7 @@ export type GlyphProps = {
 export function Glyph({ status, size = 12, className = "", title }: GlyphProps) {
   const color =
     status === "running"
-      ? "text-accent"
+      ? "text-live"
       : status === "done"
         ? "text-fg"
         : status === "queued"
@@ -42,7 +42,7 @@ export function Glyph({ status, size = 12, className = "", title }: GlyphProps) 
         aria-label={title ?? status}
       >
         <span
-          className="pulse absolute inset-0 rounded-full bg-accent"
+          className="pulse absolute inset-0 rounded-full bg-live"
           style={{ width: size, height: size }}
         />
       </span>
