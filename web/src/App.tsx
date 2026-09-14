@@ -36,9 +36,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { HomeView } from "@/features/home/HomeView";
 import { RunDetail } from "@/features/runs/detail/RunDetail";
 import { RunsPanel } from "@/features/runs/RunsPanel";
-import { SubagentView } from "@/features/tree/SubagentView";
+import { SubagentView } from "@/features/runs/SubagentView";
 import { TreeView } from "@/features/tree/TreeView";
 import { useKeys } from "@/lib/keys";
 import { useMotion } from "@/lib/motion";
@@ -214,12 +215,8 @@ export default function App() {
     };
   }, []);
 
-  useEffect(() => {
-    if (route.name === "home" && !selectedSession && sessions.length > 0) {
-      selectSession(sessions[0].id);
-    }
-  }, [sessions, selectedSession, route.name]);
-
+  // No session is auto-selected: the home route is the session-less overview
+  // (`<HomeView />`), so an empty selection is a real destination, not a gap.
   useEffect(() => {
     if (route.name === "session") selectSession(route.sessionId);
     else if (route.name === "run") {
@@ -378,6 +375,7 @@ export default function App() {
       else if (selectedSession) navigate({ name: "session", sessionId: selectedSession });
       else navigate({ name: "home" });
     } else if (route.name === "session") {
+      selectSession(null);
       navigate({ name: "home" });
     }
   }, [route, selectedSession]);
@@ -469,7 +467,11 @@ export default function App() {
             />
 
             <main className="min-h-0 flex-1">
-              {twoPane ? (
+              {!selectedSession ? (
+                <Pane paneKey="home">
+                  <HomeView />
+                </Pane>
+              ) : twoPane ? (
                 <ResizablePanelGroup direction="horizontal">
                   <ResizablePanel
                     id="runs"

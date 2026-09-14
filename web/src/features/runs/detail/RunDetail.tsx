@@ -24,6 +24,7 @@ import {
   isTerminal,
   type LogState,
 } from "@/features/runs/derive";
+import { Markdown } from "@/features/runs/Markdown";
 import { useStore } from "@/state/store";
 import { Header } from "./Header";
 import { Log } from "./Log";
@@ -36,9 +37,9 @@ function Prose({ text, empty }: { text: string; empty: string }) {
   }
   return (
     <ScrollArea className="h-full">
-      <p className="whitespace-pre-wrap break-words px-5 py-4 font-mono text-11 leading-[1.7] text-muted-foreground">
-        {text}
-      </p>
+      <div className="px-5 py-4">
+        <Markdown text={text} />
+      </div>
     </ScrollArea>
   );
 }

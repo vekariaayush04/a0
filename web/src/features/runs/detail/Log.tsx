@@ -24,6 +24,7 @@ import {
   stringifyCapped,
   type LogEntry,
 } from "@/features/runs/derive";
+import { Markdown } from "@/features/runs/Markdown";
 import { toolIcon } from "@/features/runs/status";
 import { fmtMs } from "@/lib/format";
 import { useMotion } from "@/lib/motion";
@@ -143,9 +144,9 @@ const LogBody = memo(function LogBody({
 }) {
   if (entry.kind === "assistant") {
     return (
-      <p className="max-w-[78ch] whitespace-pre-wrap break-words py-2 text-13 leading-[1.6] text-foreground">
-        {entry.text}
-      </p>
+      <div className="max-w-[78ch] py-2">
+        <Markdown text={entry.text} />
+      </div>
     );
   }
   if (entry.kind === "error") {

@@ -246,3 +246,164 @@
   --xy-edge-stroke-default: hsl(var(--border));
   --xy-attribution-background-color-default: transparent;
 }
+
+/* ---- markdown prose ----------------------------------------------------- */
+/*
+   Monochrome document styling for assistant markdown (Run log + Result tab).
+   The fenced-code chrome is a component override in
+   features/runs/Markdown.tsx; everything else lives here so the rhythm is
+   identical wherever assistant prose appears. Type scale is deliberately
+   smaller than page chrome so a long message reads as a document body.
+*/
+.prose-mono {
+  font-size: 14px;
+  line-height: 24px;
+  color: hsl(var(--foreground));
+  overflow-wrap: anywhere;
+}
+
+.prose-mono > :first-child {
+  margin-top: 0;
+}
+.prose-mono > :last-child {
+  margin-bottom: 0;
+}
+.prose-mono > * + * {
+  margin-top: 12px;
+}
+
+.prose-mono h1,
+.prose-mono h2,
+.prose-mono h3,
+.prose-mono h4,
+.prose-mono h5,
+.prose-mono h6 {
+  color: hsl(var(--foreground));
+}
+.prose-mono h1 {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+}
+.prose-mono h2 {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.prose-mono h3 {
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+}
+.prose-mono h4,
+.prose-mono h5,
+.prose-mono h6 {
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+}
+.prose-mono > * + h1,
+.prose-mono > * + h2,
+.prose-mono > * + h3 {
+  margin-top: 20px;
+}
+.prose-mono > * + h4,
+.prose-mono > * + h5,
+.prose-mono > * + h6 {
+  margin-top: 16px;
+}
+.prose-mono h1 + *,
+.prose-mono h2 + *,
+.prose-mono h3 + *,
+.prose-mono h4 + * {
+  margin-top: 8px;
+}
+
+.prose-mono strong {
+  font-weight: 600;
+}
+.prose-mono em {
+  font-style: italic;
+}
+.prose-mono a {
+  color: hsl(var(--foreground));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: hsl(var(--muted-foreground) / 0.55);
+}
+.prose-mono a:hover {
+  text-decoration-color: hsl(var(--foreground));
+}
+
+.prose-mono ul,
+.prose-mono ol {
+  padding-left: 20px;
+}
+.prose-mono ul {
+  list-style: disc;
+}
+.prose-mono ol {
+  list-style: decimal;
+}
+.prose-mono li {
+  margin-top: 2px;
+}
+.prose-mono li::marker {
+  color: hsl(var(--muted-foreground));
+}
+.prose-mono li > ul,
+.prose-mono li > ol {
+  margin-top: 2px;
+}
+
+.prose-mono blockquote {
+  border-left: 2px solid hsl(var(--border));
+  padding-left: 12px;
+  color: hsl(var(--muted-foreground));
+}
+.prose-mono hr {
+  border: 0;
+  border-top: 1px solid hsl(var(--border));
+}
+
+.prose-mono code {
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 12px;
+}
+.prose-mono :not(pre) > code {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+.prose-mono pre {
+  margin: 0;
+}
+
+.prose-mono table {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 12px;
+  line-height: 18px;
+}
+.prose-mono th,
+.prose-mono td {
+  border: 1px solid hsl(var(--border));
+  padding: 4px 8px;
+  text-align: left;
+}
+.prose-mono th {
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  font-weight: 500;
+}
+
+.prose-mono img {
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid hsl(var(--border));
+}
