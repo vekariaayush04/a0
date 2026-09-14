@@ -101,7 +101,19 @@ out a read-heavy scout at `muse-spark-1.3-contributor` before editing.
 
 ### UI
 
-Single `index.html` served at `/`, no framework, no build step.
+A Vite + React 18 + TypeScript + Tailwind 3 app lives in `web/` at the
+repo root; `bun` runs everything (`bun install`, `bun run dev`,
+`bun run build`) and the build lands in `web/dist/`. The daemon serves
+`web/dist` at `/` (index.html plus `/assets/*`, content-hashed and cached
+immutably) and falls back to `src/ui/index.html` only when `web/dist` is
+missing. To keep the daemon from silently serving a stale page,
+`sentinel install` builds the web UI before restarting the service, the
+root `postinstall` builds it when `web/node_modules` is already present,
+and daemon boot logs `web ui not built; serving legacy page. Run: bun run web:build`
+when `web/dist/index.html` is absent.
+
+The old single-file `src/ui/index.html` remains as the legacy fallback and
+is styled standalone.
 
 - Palette: pure black and white only. Dark mode is white on black, light
   mode is black on white, following `prefers-color-scheme`. One accent

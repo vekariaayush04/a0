@@ -5,11 +5,11 @@
 import { memo, useState } from "react";
 import { cancelRun } from "../../api/client";
 import type { Run } from "../../api/types";
-import { fmtMs } from "../../lib/format";
+import { fmtMs, tierLabel } from "../../lib/format";
 import { useStore } from "../../state/store";
 import { Glyph } from "../../ui/Glyph";
 import { Pill } from "../../ui/Pill";
-import { isTerminal, tierOf } from "./derive";
+import { isTerminal } from "./derive";
 import { useNow } from "./hooks";
 
 function clockTime(ts: number | null): string | null {
@@ -41,7 +41,7 @@ export const Header = memo(function Header({ run, onRun }: HeaderProps) {
     run.started !== null && elapsedEnd !== null
       ? fmtMs(elapsedEnd - run.started)
       : null;
-  const tier = tierOf(run.model, tiers);
+  const tier = tierLabel(run.model, tiers);
 
   const onCancel = async () => {
     if (!active || cancelling) return;
@@ -76,7 +76,7 @@ export const Header = memo(function Header({ run, onRun }: HeaderProps) {
           </span>
         ) : null}
 
-        {tier ? <Pill mono>{tier}</Pill> : null}
+        <Pill mono>{tier}</Pill>
 
         {started ? <span>started {started}</span> : null}
 

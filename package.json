@@ -10,7 +10,8 @@
     "daemon": "bun src/daemon/main.ts",
     "test": "bun test",
     "web:dev": "cd web && bun run dev",
-    "web:build": "cd web && bun run build"
+    "web:build": "cd web && bun run build",
+    "postinstall": "test -d web/node_modules && (cd web && bun run build) || true"
   },
   "devDependencies": { "@types/bun": "latest" }
 }

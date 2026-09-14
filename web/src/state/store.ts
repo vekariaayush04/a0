@@ -16,6 +16,8 @@ export type State = {
   selectedSub: number | null;
   view: View;
   theme: Theme;
+  /** True while the keyboard-shortcut overlay is open. */
+  overlayOpen: boolean;
 };
 
 const THEME_KEY = "sentinel.theme";
@@ -45,6 +47,7 @@ let state: State = {
   selectedSub: null,
   view: "list",
   theme: readStoredTheme(),
+  overlayOpen: false,
 };
 
 applyTheme(state.theme);
@@ -119,6 +122,13 @@ export function selectSession(id: string | null): void {
   setState({ selectedSession: id, selectedRun: null, selectedSub: null });
 }
 
+/** Point at the session that owns a run without clearing the run selection.
+ *  Used when a deep link (`#/r/<id>`) arrives before its session is known. */
+export function selectSessionForRun(sessionId: string): void {
+  if (state.selectedSession === sessionId) return;
+  setState({ selectedSession: sessionId });
+}
+
 export function selectRun(id: string | null): void {
   setState({ selectedRun: id, selectedSub: null });
 }
@@ -129,6 +139,15 @@ export function selectSub(index: number | null): void {
 
 export function setView(view: View): void {
   setState({ view });
+}
+
+export function setOverlayOpen(open: boolean): void {
+  if (state.overlayOpen === open) return;
+  setState({ overlayOpen: open });
+}
+
+export function toggleOverlay(): void {
+  setState({ overlayOpen: !state.overlayOpen });
 }
 
 export function setTheme(theme: Theme): void {

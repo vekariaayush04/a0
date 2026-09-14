@@ -1,11 +1,10 @@
 // Real top bar: brand, live stats chips, theme toggle, `?` key overlay.
 
-import { useState } from "react";
 import { fmtCost } from "../lib/format";
 import { useKeys } from "../lib/keys";
-import { cycleTheme, useStore } from "../state/store";
-import { Auto, Mark, Moon, Sun } from "../ui/icons";
-import { KeyOverlay } from "./KeyOverlay";
+import { navigate, useRoute } from "../lib/router";
+import { cycleTheme, toggleOverlay, useStore } from "../state/store";
+import { Auto, ChevronLeft, Mark, Moon, Sun } from "../ui/icons";
 
 function Chip({
   value,
@@ -28,13 +27,26 @@ function Chip({
 export function TopBar() {
   const stats = useStore((s) => s.stats);
   const theme = useStore((s) => s.theme);
-  const [showKeys, setShowKeys] = useState(false);
+  const selectedSession = useStore((s) => s.selectedSession);
+  const route = useRoute();
 
   // App owns the single /api/events subscription and keeps `stats` fresh.
   useKeys({
-    "?": () => setShowKeys((open) => !open),
+    "?": () => toggleOverlay(),
     t: () => cycleTheme(),
   });
+
+  // `#` routes stack below 1100px; the chevron walks one level back up.
+  const showBack = route.name !== "home";
+  const goBack = () => {
+    if (route.name === "run") {
+      if (route.sub !== null) navigate({ name: "run", runId: route.runId, sub: null });
+      else if (selectedSession) navigate({ name: "session", sessionId: selectedSession });
+      else navigate({ name: "home" });
+    } else if (route.name === "session") {
+      navigate({ name: "home" });
+    }
+  };
 
   const running = stats?.running ?? 0;
   const queued = stats?.queued ?? 0;
@@ -45,13 +57,26 @@ export function TopBar() {
 
   return (
     <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center justify-between border-b border-line bg-bg px-4 shadow-[0_1px_0_var(--line)]">
-      <a
-        href="#"
-        className="flex items-center gap-2 text-15 font-semibold tracking-[-0.01em] text-fg"
-      >
-        <Mark size={18} />
-        <span>Sentinel</span>
-      </a>
+      <div className="flex items-center gap-1">
+        {showBack ? (
+          <button
+            type="button"
+            aria-label="Back"
+            title="Back (Esc)"
+            onClick={goBack}
+            className="rounded-6 p-1 text-fg2 transition-colors duration-150 hover:bg-hover hover:text-fg min-[1100px]:hidden"
+          >
+            <ChevronLeft size={16} />
+          </button>
+        ) : null}
+        <a
+          href="#"
+          className="flex items-center gap-2 text-15 font-semibold tracking-[-0.01em] text-fg"
+        >
+          <Mark size={18} />
+          <span>Sentinel</span>
+        </a>
+      </div>
 
       <div className="flex items-center gap-4">
         <div className="hidden items-center gap-4 min-[700px]:flex">
@@ -78,13 +103,11 @@ export function TopBar() {
           aria-label="Keyboard shortcuts"
           title="Keyboard shortcuts (?)"
           className="rounded-6 px-1.5 py-0.5 text-13 text-fg3 transition-colors duration-150 hover:bg-hover hover:text-fg"
-          onClick={() => setShowKeys(true)}
+          onClick={() => toggleOverlay()}
         >
           ?
         </button>
       </div>
-
-      {showKeys ? <KeyOverlay onClose={() => setShowKeys(false)} /> : null}
     </header>
   );
 }

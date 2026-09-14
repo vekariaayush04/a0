@@ -24,6 +24,15 @@
   color-scheme: dark;
 }
 
+/* Auto theme (no explicit light/dark choice) follows the operating system. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #000;
+    --fg: #fff;
+    color-scheme: dark;
+  }
+}
+
 /* ---- base ------------------------------------------------------------- */
 
 @layer base {

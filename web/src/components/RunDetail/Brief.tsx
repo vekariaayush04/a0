@@ -8,8 +8,6 @@ export type BriefProps = {
 };
 
 export const Brief = memo(function Brief({ text }: BriefProps) {
-  if (!text) return null;
-
   return (
     <details className="group border-b border-line px-4 py-2">
       <summary className="flex cursor-pointer list-none items-center gap-1.5 text-11 uppercase tracking-[0.08em] text-fg3 transition-colors duration-150 hover:text-fg2 [&::-webkit-details-marker]:hidden">
@@ -18,9 +16,13 @@ export const Brief = memo(function Brief({ text }: BriefProps) {
         </span>
         Brief
       </summary>
-      <p className="mt-2 whitespace-pre-wrap font-mono text-11 leading-[1.6] text-fg2">
-        {text}
-      </p>
+      {text ? (
+        <p className="mt-2 whitespace-pre-wrap font-mono text-11 leading-[1.6] text-fg2">
+          {text}
+        </p>
+      ) : (
+        <p className="mt-2 text-11 text-fg3">No brief captured</p>
+      )}
     </details>
   );
 });

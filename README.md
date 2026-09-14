@@ -31,8 +31,9 @@ can always find them again.
   `logs`, `result`, `cancel`, `open`.
 - **A Claude Code skill** — Claude plans, writes one brief per independent
   unit of work, fires them in parallel, waits, verifies, and reports.
-- **The UI** — one HTML file, no framework. Sessions on the left, runs in
-  the middle, the live log on the right. Pure black and white.
+- **The UI** — a small Vite + React app in `web/`, served by the daemon
+  as a single page. Sessions on the left, runs in the middle, the live
+  log on the right. Pure black and white.
 - **Spawn tree view** — when a run's Pi agent fans out subagents (via the
   pi-subagents extension), the UI can show them as a tree with per-agent
   cost, turns, status and tool calls, drilling into any subagent's full
@@ -50,11 +51,17 @@ can always find them again.
 ```bash
 git clone git@github.com:vekariaayush04/sentinel.git
 cd sentinel
-bun install
+bun install         # also runs the web UI postinstall build when web/node_modules exists
 bun link            # puts `sentinel` on your PATH
-sentinel install    # user systemd service + Claude skill symlink
+sentinel install    # builds the web UI, then user systemd service + Claude skill symlink
 sentinel open       # opens the UI
 ```
+
+`sentinel install` builds the web UI before starting the daemon: it runs
+`bun install --frozen-lockfile` and `bun run build` inside `web/`, and if
+that fails it prints why and continues (the daemon then serves the legacy
+page). For manual setups without `sentinel install`, build the UI once
+with `bun run web:build` from the repo root.
 
 `sentinel install` writes and enables the `sentineld` systemd user
 service, restarting it if it was already running, symlinks
@@ -164,6 +171,8 @@ process on the same machine. Do not expose the port beyond loopback.
 ```bash
 bun test            # unit + integration (uses a fake pi)
 bun run dev         # daemon with reload
+bun run web:build   # production build of the web UI into web/dist
+bun run web:dev     # Vite dev server on 5173, proxying /api to the daemon on 4747
 ```
 
 See [DESIGN.md](DESIGN.md) for the architecture and the decisions behind

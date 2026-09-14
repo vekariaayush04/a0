@@ -1,42 +1,55 @@
 // Run detail pane. This is the single parent for the run: it owns the run
-// fetch, the one per-run SSE subscription and the one `deriveLog` pass, then
-// hands each leaf the smallest slice of state it needs. Leaves are pure and
-// mostly memoized, so a streaming event only re-renders the Timeline and Log.
+// fetch, the one per-run SSE subscription and the one incremental log fold,
+// then hands each leaf the smallest slice of state it needs.
+//
+// Derivation is streaming: `foldLogEvent` folds each frame into a mutable
+// accumulator (open-tool map + entries + brief) instead of re-scanning the
+// whole event history on every render. Dedupe uses cheap per-event identities
+// (`toolCallId + type` or `type:ts`), never a full JSON stringify. The
+// accumulator is reset only on run switch and on reconnect replay.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getRun } from "../../api/client";
 import { useRunEvents } from "../../api/sse";
 import type { PiEvent, Run } from "../../api/types";
 import { useStore } from "../../state/store";
 import { Empty } from "../../ui/Empty";
 import { Brief } from "./Brief";
-import { briefText, deriveLog, isTerminal } from "./derive";
+import {
+  createLogState,
+  foldLogEvent,
+  isTerminal,
+  type LogState,
+} from "./derive";
 import { Header } from "./Header";
 import { Log } from "./Log";
 import { StatsStrip } from "./StatsStrip";
 import { Timeline } from "./Timeline";
 
-function eventKey(event: PiEvent): string | null {
-  try {
-    return JSON.stringify(event);
-  } catch {
-    return null;
-  }
-}
-
 export function RunDetail() {
   const runId = useStore((store) => store.selectedRun);
   const [run, setRunState] = useState<Run | null>(null);
-  const [events, setEvents] = useState<PiEvent[]>([]);
-  // Dedupe identical replayed frames so a StrictMode remount or a reconnect
-  // replay cannot append the same event twice.
-  const seen = useRef<Set<string>>(new Set());
+  // Mutable derivation buffer. `logVersion` is the render signal: we bump it
+  // whenever a fold actually changed a visible entry.
+  const logRef = useRef<LogState | null>(null);
+  const [logVersion, setLogVersion] = useState(0);
+  // Reset the buffer synchronously when the run changes so we never render the
+  // previous run's entries for a frame.
+  const activeRunId = useRef(runId);
+  if (activeRunId.current !== runId) {
+    activeRunId.current = runId;
+    logRef.current = createLogState();
+  }
+  if (!logRef.current) logRef.current = createLogState();
 
-  // Reset and re-fetch whenever the selected run changes.
+  const resetLog = useCallback(() => {
+    logRef.current = createLogState();
+    setLogVersion((version) => version + 1);
+  }, []);
+
+  // Re-fetch the run whenever the selection changes.
   useEffect(() => {
-    seen.current = new Set();
     setRunState(null);
-    setEvents([]);
     if (!runId) return;
     let cancelled = false;
     getRun(runId)
@@ -52,26 +65,15 @@ export function RunDetail() {
   }, [runId]);
 
   const ingest = useCallback((event: PiEvent) => {
-    const key = eventKey(event);
-    if (key !== null) {
-      if (seen.current.has(key)) return;
-      seen.current.add(key);
+    if (foldLogEvent(logRef.current ?? (logRef.current = createLogState()), event)) {
+      setLogVersion((version) => version + 1);
     }
-    setEvents((current) => [...current, event]);
   }, []);
 
-  useRunEvents<PiEvent, Run>(
-    runId,
-    ingest,
-    (next) => setRunState(next),
-    () => {
-      seen.current = new Set();
-      setEvents([]);
-    },
-  );
+  useRunEvents<PiEvent, Run>(runId, ingest, setRunState, resetLog);
 
-  const entries = useMemo(() => deriveLog(events), [events]);
-  const brief = useMemo(() => briefText(events), [events]);
+  const entries = logRef.current.entries;
+  const brief = logRef.current.brief;
   const onRun = useCallback((next: Run) => setRunState(next), []);
 
   if (!runId && !run) {
@@ -82,7 +84,7 @@ export function RunDetail() {
     <div className="flex h-full flex-col">
       <Header run={run} onRun={onRun} />
       <Brief text={brief} />
-      <Timeline entries={entries} run={run} />
+      <Timeline entries={entries} version={logVersion} run={run} />
       <div className="min-h-0 flex-1 overflow-y-auto">
         <Log entries={entries} terminal={run ? isTerminal(run.status) : false} />
       </div>

@@ -1,6 +1,6 @@
-// Keyboard shortcut overlay toggled from the TopBar `?` button.
+// Keyboard shortcut overlay toggled from the TopBar `?` button. The App's
+// key handler owns Escape and closes this overlay via the store flag.
 
-import { useKeys } from "../lib/keys";
 import { X } from "../ui/icons";
 import { Kbd } from "../ui/Kbd";
 
@@ -15,12 +15,9 @@ const KEYS: Array<[string, string]> = [
 ];
 
 export function KeyOverlay({ onClose }: { onClose: () => void }) {
-  // `?` is bound once in the TopBar; this overlay closes via Esc or its button.
-  useKeys({ Escape: onClose });
-
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-bg/70 p-6"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[color-mix(in_srgb,var(--bg)_70%,transparent)] p-6"
       onClick={onClose}
     >
       <div

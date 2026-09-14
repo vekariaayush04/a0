@@ -1,10 +1,20 @@
 import { mkdirSync, writeFileSync, existsSync, symlinkSync, readlinkSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { spawnSync } from "node:child_process";
 
 export async function install() {
   const repo = resolve(import.meta.dir, "../..");
   const home = process.env.HOME!;
   const bun = Bun.which("bun") ?? "bun";
+
+  const webDir = join(repo, "web");
+  const deps = spawnSync(bun, ["install", "--frozen-lockfile"], { cwd: webDir, stdio: "inherit" });
+  if (deps.status !== 0) {
+    console.log("web ui deps install failed; continuing (the daemon will serve the legacy page)");
+  } else {
+    const build = spawnSync(bun, ["run", "build"], { cwd: webDir, stdio: "inherit" }); // bun run build inside web/
+    console.log(build.status === 0 ? "web ui built" : "web ui build failed; continuing (the daemon will serve the legacy page)");
+  }
 
   const unitDir = join(home, ".config/systemd/user");
   mkdirSync(unitDir, { recursive: true });

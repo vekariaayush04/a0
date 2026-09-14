@@ -35,6 +35,9 @@ function scrollToLog(id: string): void {
 export type TimelineProps = {
   entries: LogEntry[];
   run: Run | null;
+  // Bumped by the parent as entries are folded in. The entries array is a
+  // stable mutable buffer, so memo needs this to know it changed.
+  version?: number;
 };
 
 export const Timeline = memo(function Timeline({ entries, run }: TimelineProps) {

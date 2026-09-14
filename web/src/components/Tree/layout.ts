@@ -106,6 +106,8 @@ export type Layout = {
   axisTicks: LayoutAxisTick[];
   /** Top of the queued band, or null when there are no queued runs. */
   queuedTop: number | null;
+  /** Wall-clock time used as the end of still-running extents. */
+  now: number;
 };
 
 const DEFAULTS = {
@@ -459,5 +461,6 @@ export function layoutSession(
     ticks: ticks.sort((a, b) => a.y - b.y),
     axisTicks,
     queuedTop,
+    now,
   };
 }

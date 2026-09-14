@@ -107,6 +107,147 @@ function toolId(toolCallId: string | undefined, index: number): string {
   return toolCallId ? `tool-${toolCallId}` : `tool-${index}`;
 }
 
+/** Incremental derivation state. `openTools` maps a tool call id to the index
+ *  of its entry so a later `tool_execution_end` can fill in the result without
+ *  re-scanning the stream. `seen` holds cheap per-event identities so a replay
+ *  or an overlapping connection cannot fold the same frame twice. */
+export type LogState = {
+  entries: LogEntry[];
+  openTools: Map<string, number>;
+  seen: Set<string>;
+  brief: string;
+  seq: number;
+};
+
+export function createLogState(): LogState {
+  return {
+    entries: [],
+    openTools: new Map(),
+    seen: new Set(),
+    brief: "",
+    seq: 0,
+  };
+}
+
+/** Cheap identity for dedupe: tool frames key on id+type, everything else on
+ *  type+timestamp. Avoids stringifying whole events on every frame. */
+export function eventIdentity(event: PiEvent): string | null {
+  if (
+    event.type === "tool_execution_start" ||
+    event.type === "tool_execution_end"
+  ) {
+    const toolCallId = (event as { toolCallId?: unknown }).toolCallId;
+    if (typeof toolCallId === "string" && toolCallId) {
+      return `${event.type}:${toolCallId}`;
+    }
+  }
+  const ts = (event as { ts?: unknown }).ts;
+  return typeof ts === "number" ? `${event.type}:${ts}` : null;
+}
+
+/** Fold one event into the derivation state. Mutates `state` in place and
+ *  returns true when it produced a visible change (a new/updated log entry or
+ *  the brief), so the caller only re-renders when something actually changed.
+ *  Idempotent: folding the same event twice is a no-op. */
+export function foldLogEvent(state: LogState, event: PiEvent): boolean {
+  const key = eventIdentity(event);
+  if (key !== null) {
+    if (state.seen.has(key)) return false;
+    state.seen.add(key);
+  }
+
+  const index = state.seq++;
+  const ts = typeof event.ts === "number" ? event.ts : null;
+
+  if (event.type === "message_end") {
+    const message = (event as PiMessageEndEvent).message;
+    if (message?.role === "user") {
+      if (state.brief) return false;
+      const text = messageText(message.content);
+      if (!text) return false;
+      state.brief = text;
+      return true;
+    }
+    if (message?.role !== "assistant") return false;
+
+    let changed = false;
+    const errored =
+      message.stopReason === "error" || Boolean(message.errorMessage);
+    if (errored) {
+      state.entries.push({
+        kind: "error",
+        id: `err-${index}`,
+        ts,
+        text: String(message.errorMessage ?? message.stopReason ?? "run error"),
+      });
+      changed = true;
+    }
+    const text = messageText(message.content);
+    if (text) {
+      state.entries.push({ kind: "assistant", id: `msg-${index}`, ts, text });
+      changed = true;
+    }
+    return changed;
+  }
+
+  if (event.type === "tool_execution_start") {
+    const start = event as PiToolStartEvent;
+    if (start.toolCallId) {
+      state.openTools.set(start.toolCallId, state.entries.length);
+    }
+    state.entries.push({
+      kind: "tool",
+      id: toolId(start.toolCallId, index),
+      toolCallId: start.toolCallId ?? "",
+      name: start.toolName ?? "tool",
+      target: toolTarget(start.args),
+      args: start.args,
+      result: undefined,
+      isError: false,
+      startTs: ts,
+      endTs: null,
+    });
+    return true;
+  }
+
+  if (event.type === "tool_execution_end") {
+    const end = event as PiToolEndEvent;
+    const openIndex = end.toolCallId
+      ? state.openTools.get(end.toolCallId)
+      : undefined;
+    if (openIndex !== undefined) {
+      const open = state.entries[openIndex];
+      if (open && open.kind === "tool") {
+        state.entries[openIndex] = {
+          ...open,
+          result: end.result,
+          isError: end.isError === true,
+          endTs: ts,
+        };
+        if (end.toolCallId) state.openTools.delete(end.toolCallId);
+        return true;
+      }
+    }
+    // An end without a matching start still becomes a row (its start was
+    // dropped); mark it resolved so it does not render as perpetually running.
+    state.entries.push({
+      kind: "tool",
+      id: toolId(end.toolCallId, index),
+      toolCallId: end.toolCallId ?? "",
+      name: end.toolName ?? "tool",
+      target: "",
+      args: undefined,
+      result: end.result,
+      isError: end.isError === true,
+      startTs: null,
+      endTs: ts,
+    });
+    return true;
+  }
+
+  return false;
+}
+
 /** Ordered log entries: assistant text, paired tool calls, error blocks.
  *  Thinking content and user messages are skipped (the brief is rendered
  *  separately). Tool rows are emitted at their start position and carry the

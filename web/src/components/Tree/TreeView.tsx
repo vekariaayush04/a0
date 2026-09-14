@@ -7,15 +7,17 @@
 // SVG.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { RunTree, SessionTree, SubagentNode } from "../../api/types";
+import type { Run, RunTree, SessionTree, SubagentNode } from "../../api/types";
 import { getSessionTree } from "../../api/client";
-import { useGlobalStatus } from "../../api/sse";
-import { fmtCost, fmtMs } from "../../lib/format";
+import { fmtCost, fmtMs, tierLabel } from "../../lib/format";
 import { navigate } from "../../lib/router";
 import { Empty } from "../../ui/Empty";
 import { Tooltip } from "../../ui/Tooltip";
 import { useStore } from "../../state/store";
 import { layoutSession, type Layout, type LayoutNode } from "./layout";
+
+/** Stable fallback so the store selector never returns a fresh array. */
+const EMPTY_RUNS: Run[] = [];
 
 /** True when this subagent or any descendant is still running. */
 function subagentsRunning(nodes: SubagentNode[]): boolean {
@@ -60,15 +62,15 @@ function titleOf(node: LayoutNode): string {
   return (node.ref as SubagentNode).agent || "subagent";
 }
 
-function durationOf(node: LayoutNode): string {
+function durationOf(node: LayoutNode, now: number): string {
   if (node.kind === "session") return "";
   if (node.queued) return "queued";
   if (node.started === null) return "";
-  const end = node.ended ?? Date.now();
+  const end = node.ended ?? now;
   return fmtMs(Math.max(0, end - node.started));
 }
 
-function metaOf(node: LayoutNode): string {
+function metaOf(node: LayoutNode, now: number): string {
   if (node.kind === "session") {
     const tree = node.ref as SessionTree;
     return `${tree.runCount} run${tree.runCount === 1 ? "" : "s"} · ${fmtCost(
@@ -78,15 +80,16 @@ function metaOf(node: LayoutNode): string {
   if (node.kind === "run") {
     const run = node.ref as RunTree;
     const cost = fmtCost(run.cost);
-    return node.queued ? `${run.model} · queued` : `${durationOf(node)} · ${cost}`;
+    return node.queued ? `${run.model} · queued` : `${durationOf(node, now)} · ${cost}`;
   }
   const child = node.ref as SubagentNode;
   return `${child.model || "subagent"} · ${fmtCost(child.cost)}`;
 }
 
 function tierLabelOf(node: LayoutNode): string | null {
-  if (node.kind === "run") return (node.ref as RunTree).tier || null;
-  return null;
+  if (node.kind !== "run") return null;
+  const tier = (node.ref as RunTree).tier;
+  return tier ? tierLabel(tier) : null;
 }
 
 function statusOf(node: LayoutNode): string {
@@ -200,16 +203,18 @@ function NodeGlyph({ node }: { node: LayoutNode }) {
 
 function TreeNode({
   node,
+  now,
   selected,
   onOpen,
 }: {
   node: LayoutNode;
+  now: number;
   selected: boolean;
   onOpen: (node: LayoutNode) => void;
 }) {
   const focusable = node.kind !== "session";
   const title = titleOf(node);
-  const meta = metaOf(node);
+  const meta = metaOf(node, now);
   const tier = tierLabelOf(node);
   const titleX = node.x + 26;
   const titleY = node.kind === "subagent" ? node.y + 19 : node.y + 21;
@@ -260,7 +265,7 @@ function TreeNode({
         height={node.h + 3}
         rx={9.5}
         fill="none"
-        stroke="var(--accent)"
+        stroke="var(--fg-3)"
         strokeWidth={1.5}
         className="pointer-events-none opacity-0 group-focus-visible:opacity-100"
       />
@@ -405,6 +410,7 @@ export function TreeCanvas({
               <TreeNode
                 key={node.id}
                 node={node}
+                now={layout.now}
                 selected={selected}
                 onOpen={onOpen}
               />
@@ -444,6 +450,15 @@ export function TreeView() {
   const sessionId = useStore((state) => state.selectedSession);
   const selectedRun = useStore((state) => state.selectedRun);
   const selectedSub = useStore((state) => state.selectedSub);
+  // App owns the single global status stream and patches runs into the store
+  // on every status frame, so a new `sessionRuns` reference means the tree
+  // may be stale. `EMPTY_RUNS` keeps the fallback referentially stable.
+  const sessionRuns = useStore((state) =>
+    sessionId === null
+      ? EMPTY_RUNS
+      : state.runsBySession[sessionId] ?? EMPTY_RUNS,
+  );
+  const anyRunRunning = sessionRuns.some((run) => run.status === "running");
 
   const [tree, setTree] = useState<SessionTree | null>(null);
   const [loading, setLoading] = useState(false);
@@ -451,22 +466,22 @@ export function TreeView() {
   const [now, setNow] = useState(() => Date.now());
   const requestId = useRef(0);
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const activeSession = useRef<string | null>(null);
 
   // Extents of running runs/subagents end at `now`, so tick once a second
-  // while anything is live to let them grow without a refetch.
-  const anyRunning =
+  // while anything in the tree is live. This only moves `now`; it never
+  // refetches.
+  const treeRunning =
     tree !== null &&
     tree.children.some(
       (run) => run.status === "running" || subagentsRunning(run.children),
     );
 
   useEffect(() => {
-    if (!anyRunning) return;
+    if (!treeRunning) return;
     setNow(Date.now());
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
-  }, [anyRunning]);
+  }, [treeRunning]);
 
   const load = useCallback(async (id: string) => {
     const token = ++requestId.current;
@@ -490,7 +505,6 @@ export function TreeView() {
   }, []);
 
   useEffect(() => {
-    activeSession.current = sessionId;
     if (!sessionId) {
       setTree(null);
       setError(null);
@@ -503,25 +517,23 @@ export function TreeView() {
     void load(sessionId);
   }, [sessionId, load]);
 
-  // Global status frames mean a run changed: debounce a tree refetch.
-  const scheduleRefresh = useRef(() => {});
-  scheduleRefresh.current = () => {
-    const id = activeSession.current;
-    if (!id) return;
+  // Runs changing in the store (or a run being live) means the session tree
+  // may have new nodes, tools or costs: refetch it, debounced. The 1s ticker
+  // above keeps running extents growing without a refetch.
+  useEffect(() => {
+    if (!sessionId) return;
     if (refreshTimer.current !== null) clearTimeout(refreshTimer.current);
     refreshTimer.current = setTimeout(() => {
       refreshTimer.current = null;
-      void load(id);
+      void load(sessionId);
     }, 300);
-  };
-  useGlobalStatus(() => scheduleRefresh.current());
-
-  useEffect(
-    () => () => {
-      if (refreshTimer.current !== null) clearTimeout(refreshTimer.current);
-    },
-    [],
-  );
+    return () => {
+      if (refreshTimer.current !== null) {
+        clearTimeout(refreshTimer.current);
+        refreshTimer.current = null;
+      }
+    };
+  }, [sessionId, sessionRuns, anyRunRunning, load]);
 
   const layout = useMemo(
     () => (tree ? layoutSession(tree, { now }) : null),

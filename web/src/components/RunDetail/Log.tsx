@@ -34,7 +34,7 @@ function AnimatedEntry({ id, children }: { id: string; children: ReactNode }) {
   }, []);
 
   return (
-    <div ref={ref} data-log-id={logDomId(id)}>
+    <div ref={ref} id={logDomId(id)} data-log-id={logDomId(id)}>
       {children}
     </div>
   );
