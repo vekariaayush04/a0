@@ -50,3 +50,18 @@ export function baseName(path: string | null | undefined): string {
   const index = trimmed.lastIndexOf("/");
   return index === -1 ? trimmed : trimmed.slice(index + 1);
 }
+
+/** Resolve a run's model to a tier label ("L1" | "L2" | "L3" | "custom"). Accepts a daemon tier value ("l2") or a tier map. */
+export function tierLabel(
+  modelOrTier: string | null | undefined,
+  tiers?: { l1: string; l2: string; l3: string } | null,
+): string {
+  const v = (modelOrTier ?? "").trim();
+  if (/^l[123]$/i.test(v)) return v.toUpperCase();
+  if (tiers) {
+    if (v === tiers.l1) return "L1";
+    if (v === tiers.l2) return "L2";
+    if (v === tiers.l3) return "L3";
+  }
+  return "custom";
+}
