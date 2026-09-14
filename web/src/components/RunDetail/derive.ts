@@ -351,16 +351,6 @@ export function briefText(events: PiEvent[]): string {
 }
 
 /** Resolve a model name to its L1/L2/L3 tier label using /api/stats. */
-export function tierOf(
-  model: string,
-  tiers: { l1: string; l2: string; l3: string } | null | undefined,
-): string | null {
-  if (!tiers || !model) return null;
-  if (model === tiers.l1) return "L1";
-  if (model === tiers.l2) return "L2";
-  if (model === tiers.l3) return "L3";
-  return null;
-}
 
 /** Duration between two epoch-ms timestamps, or null if either is missing. */
 export function durationBetween(
