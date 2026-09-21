@@ -57,6 +57,13 @@ export function StatusGlyph({
           className={cn(base, "text-muted-foreground")}
         />
       );
+    case "unknown":
+      return (
+        <Circle
+          aria-label="unknown"
+          className={cn(base, "text-muted-foreground")}
+        />
+      );
     default:
       return (
         <Circle
@@ -100,7 +107,11 @@ export function StatusBadge({ status }: { status: Status | string }) {
       variant="outline"
       className={cn(
         "h-6 gap-1.5 rounded-md border-border px-2 text-11 font-medium capitalize",
-        status === "running" ? "text-live" : "text-foreground",
+        status === "running"
+          ? "text-live"
+          : status === "unknown"
+            ? "text-muted-foreground"
+            : "text-foreground",
       )}
     >
       <StatusGlyph status={status} className="h-3 w-3" />

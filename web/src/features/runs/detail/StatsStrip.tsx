@@ -10,55 +10,9 @@ import type { Run } from "@/api/types";
 import { Button } from "@/components/ui/button";
 import { firstLine, runDuration } from "@/features/runs/derive";
 import { useNow } from "@/features/runs/hooks";
+import { copyText } from "@/lib/clipboard";
 import { fmtCost, fmtMs } from "@/lib/format";
-import { cn } from "@/lib/utils";
-
-async function copyText(text: string): Promise<boolean> {
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-  } catch {
-    /* fall through to the execCommand path */
-  }
-  try {
-    const area = document.createElement("textarea");
-    area.value = text;
-    area.setAttribute("readonly", "");
-    area.style.position = "fixed";
-    area.style.top = "-9999px";
-    area.style.opacity = "0";
-    document.body.appendChild(area);
-    area.select();
-    const ok = document.execCommand("copy");
-    document.body.removeChild(area);
-    return ok;
-  } catch {
-    return false;
-  }
-}
-
-function Cell({
-  label,
-  children,
-  className,
-}: {
-  label: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={cn("flex min-w-0 flex-col gap-0.5 px-3.5 py-2", className)}>
-      <span className="text-10 uppercase tracking-[0.1em] text-muted-foreground">
-        {label}
-      </span>
-      <span className="truncate font-mono text-11 tabular-nums text-foreground">
-        {children}
-      </span>
-    </div>
-  );
-}
+import { Cell } from "./StatsCell";
 
 export const StatsStrip = memo(function StatsStrip({ run }: { run: Run | null }) {
   const [copied, setCopied] = useState(false);

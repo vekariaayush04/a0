@@ -4,8 +4,9 @@
 // newest runs across every session, and the sessions carrying the most spend.
 // Every number is mono and right-aligned; the only accent is the live running
 // state. Spend history is derived client-side (bucket `created` by hour) so
-// no new daemon route or SSE channel is needed — the view simply refetches
-// `/api/runs` whenever the store's stats or sessions change.
+// no new daemon route or SSE channel is needed — `/api/runs` is fetched once to
+// seed the store, and the view then reads `runsBySession`, which the per-run
+// SSE status frames keep current.
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { motion } from "motion/react";
@@ -22,12 +23,13 @@ import {
 import { getRuns } from "@/api/client";
 import type { Run, Session, Stats } from "@/api/types";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { LiveDot, StatusGlyph } from "@/features/runs/status";
 import { fmtCost } from "@/lib/format";
 import { useMotion } from "@/lib/motion";
 import { navigate } from "@/lib/router";
 import { cn } from "@/lib/utils";
-import { selectSession, useStore } from "@/state/store";
+import { selectSession, setRuns, useStore } from "@/state/store";
 
 const HOUR = 3_600_000;
 const BUCKETS = 24;
@@ -288,31 +290,89 @@ function RecentRunsCard({
   );
 }
 
+/** First-load placeholder: the same card grid with skeleton content, so the
+ *  overview never paints a row of zeros before the runs arrive. */
+function HomeSkeleton() {
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="mx-auto w-full max-w-5xl px-6 py-6">
+        <header>
+          <h1 className="text-20 font-semibold tracking-[-0.02em] text-foreground">
+            Overview
+          </h1>
+          <p className="mt-0.5 text-12 text-muted-foreground">
+            Today's activity across every session.
+          </p>
+        </header>
+
+        <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <HomeCard title="Today">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-5">
+              {["Runs", "Spend", "Running", "Queued"].map((label) => (
+                <div key={label} className="flex flex-col gap-1">
+                  <span className="text-10 uppercase tracking-[0.1em] text-muted-foreground">
+                    {label}
+                  </span>
+                  <Skeleton className="h-5 w-16 rounded-md" />
+                </div>
+              ))}
+            </div>
+          </HomeCard>
+          <HomeCard title="Sessions">
+            <Skeleton className="h-5 w-20 rounded-md" />
+            <div className="mt-3 flex flex-col gap-2">
+              <Skeleton className="h-3.5 w-full rounded-md" />
+              <Skeleton className="h-3.5 w-5/6 rounded-md" />
+              <Skeleton className="h-3.5 w-4/6 rounded-md" />
+            </div>
+          </HomeCard>
+          <HomeCard title="Spend, last 24h" className="lg:col-span-2">
+            <Skeleton className="h-[150px] w-full rounded-md" />
+          </HomeCard>
+          <HomeCard title="Recent runs" className="lg:col-span-2">
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-x-3">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <Skeleton key={index} className="h-9 w-full rounded-lg" />
+              ))}
+            </div>
+          </HomeCard>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function HomeView() {
   const stats = useStore((s) => s.stats);
   const sessions = useStore((s) => s.sessions);
-  const [runs, setRuns] = useState<Run[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const runsBySession = useStore((s) => s.runsBySession);
+  const [loading, setLoading] = useState(true);
   const { rise, list } = useMotion(4);
 
-  // Refetch whenever the daemon's stats or session list change; App already
-  // debounces those refreshes off the one global SSE subscription, so this is
-  // live without opening a second stream.
+  // Seed the store once. From then on the overview reads the same
+  // `runsBySession` cache the per-run SSE status frames patch, so it stays
+  // live without refetching on every stats/session change.
   useEffect(() => {
     let cancelled = false;
     void getRuns()
       .then((next) => {
-        if (cancelled) return;
-        setRuns(next);
-        setLoaded(true);
+        if (!cancelled) setRuns(next);
       })
       .catch(() => {
-        if (!cancelled) setLoaded(true);
+        /* keep whatever the store already holds */
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [stats, sessions]);
+  }, []);
+
+  const runs = useMemo(
+    () => Object.values(runsBySession).flat(),
+    [runsBySession],
+  );
 
   const recent = useMemo(
     () =>
@@ -331,7 +391,11 @@ export function HomeView() {
 
   const sessionTitle = (id: string) => titleById.get(id) ?? id.slice(0, 8);
 
-  if (loaded && runs.length === 0) {
+  if (loading) {
+    return <HomeSkeleton />;
+  }
+
+  if (runs.length === 0) {
     return (
       <div className="flex h-full min-h-0 flex-col items-center justify-center px-8 text-center">
         <p className="text-13 font-medium text-foreground">No runs yet</p>

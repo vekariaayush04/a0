@@ -28,7 +28,6 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Toaster } from "@/components/ui/sonner";
 import {
   Tooltip,
@@ -40,7 +39,6 @@ import { HomeView } from "@/features/home/HomeView";
 import { RunDetail } from "@/features/runs/detail/RunDetail";
 import { RunsPanel } from "@/features/runs/RunsPanel";
 import { SubagentView } from "@/features/runs/SubagentView";
-import { TreeView } from "@/features/tree/TreeView";
 import { useKeys } from "@/lib/keys";
 import { useMotion } from "@/lib/motion";
 import { navigate, useRoute } from "@/lib/router";
@@ -56,7 +54,6 @@ import {
   setRunsForSession,
   setSessions,
   setStats,
-  setView,
   useStore,
 } from "@/state/store";
 
@@ -106,49 +103,11 @@ function Pane({
   );
 }
 
-/** Runs panel: the Runs | Tree tab strip over the matching body. */
+/** Runs panel: the one scroll region for the run list. */
 function RunsPane() {
-  const view = useStore((s) => s.view);
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="flex h-11 shrink-0 items-center border-b border-border px-3">
-        <Tabs
-          value={view}
-          onValueChange={(value) => setView(value === "tree" ? "tree" : "list")}
-        >
-          <TabsList className="h-7 bg-muted p-0.5">
-            <TabsTrigger value="list" className="h-6 px-2.5 text-11">
-              Runs
-            </TabsTrigger>
-            <TabsTrigger value="tree" className="h-6 px-2.5 text-11">
-              Tree
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <kbd className="ml-auto inline-flex h-5 items-center rounded border border-border px-1.5 font-mono text-10 text-muted-foreground">
-              g
-            </kbd>
-          </TooltipTrigger>
-          <TooltipContent side="left">Toggle Runs / Tree</TooltipContent>
-        </Tooltip>
-      </div>
-
-      {/* The one scroll region for this panel. The tree is both taller and
-          wider than the panel, so it scrolls in both axes; `overscroll-contain`
-          stops a flick from scrolling the page behind it. */}
-      <div className="min-h-0 flex-1 overflow-auto overscroll-contain">
-        <Pane paneKey={view} className="min-h-full min-w-full">
-          {view === "tree" ? (
-            <div className="pt-4">
-              <TreeView />
-            </div>
-          ) : (
-            <RunsPanel />
-          )}
-        </Pane>
-      </div>
+    <div className="h-full min-h-0 overflow-auto overscroll-contain">
+      <RunsPanel />
     </div>
   );
 }
@@ -182,7 +141,6 @@ export default function App() {
   const runsBySession = useStore((s) => s.runsBySession);
   const selectedSession = useStore((s) => s.selectedSession);
   const selectedRun = useStore((s) => s.selectedRun);
-  const view = useStore((s) => s.view);
   const overlayOpen = useStore((s) => s.overlayOpen);
   const runsMaybe = useStore((s) =>
     selectedSession ? s.runsBySession[selectedSession] : undefined,
@@ -308,22 +266,11 @@ export default function App() {
 
   // ---- keyboard ---------------------------------------------------------
 
-  // j/k walk the runs panel. Tree mode follows the vertical time order the
-  // tree paints (started ascending, queued last); list mode follows created.
-  const orderedRuns = useMemo(() => {
-    const copy = runs.slice();
-    if (view === "tree") {
-      copy.sort((a, b) => {
-        const as = a.started ?? Number.POSITIVE_INFINITY;
-        const bs = b.started ?? Number.POSITIVE_INFINITY;
-        if (as !== bs) return as - bs;
-        return (a.created || 0) - (b.created || 0);
-      });
-    } else {
-      copy.sort((a, b) => (b.created || 0) - (a.created || 0));
-    }
-    return copy;
-  }, [runs, view]);
+  // j/k walk the runs panel in the order the list paints (newest first).
+  const orderedRuns = useMemo(
+    () => runs.slice().sort((x, y) => (y.created || 0) - (x.created || 0)),
+    [runs],
+  );
 
   const busy = overlayOpen || commandOpen || sheetOpen;
 
@@ -381,10 +328,6 @@ export default function App() {
   }, [route, selectedSession]);
 
   useKeys({
-    g: () => {
-      if (busy) return;
-      setView(view === "tree" ? "list" : "tree");
-    },
     j: () => {
       if (busy) return;
       if (route.name === "home") moveSessions(1);

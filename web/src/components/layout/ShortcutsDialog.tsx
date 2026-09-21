@@ -15,7 +15,6 @@ const KEYS: Array<[string, string]> = [
   ["Enter", "Open the selection"],
   ["Esc", "Back, or close an overlay"],
   ["c", "Cancel the selected run"],
-  ["g", "Toggle Runs / Tree"],
   ["t", "Cycle theme"],
   ["⌘K / Ctrl K", "Command palette"],
   ["?", "This dialog"],

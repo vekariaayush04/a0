@@ -3,7 +3,7 @@
 // state so the `k` list shortcut and the palette cannot both fire.
 
 import { useMemo } from "react";
-import { Layers, Moon, PanelsTopLeft, Play, Sun } from "lucide-react";
+import { Moon, PanelsTopLeft, Sun } from "lucide-react";
 
 import type { Run } from "@/api/types";
 import {
@@ -23,7 +23,6 @@ import {
   cycleTheme,
   selectRun,
   selectSession,
-  setView,
   useStore,
 } from "@/state/store";
 
@@ -106,28 +105,6 @@ export function CommandPalette({
 
         <CommandSeparator />
         <CommandGroup heading="Actions">
-          <CommandItem
-            value="view runs list"
-            onSelect={() => {
-              setView("list");
-              close();
-            }}
-          >
-            <Play className="h-3.5 w-3.5 text-muted-foreground" />
-            Show runs
-            <CommandShortcut>g</CommandShortcut>
-          </CommandItem>
-          <CommandItem
-            value="view spawn tree"
-            onSelect={() => {
-              setView("tree");
-              close();
-            }}
-          >
-            <Layers className="h-3.5 w-3.5 text-muted-foreground" />
-            Show tree
-            <CommandShortcut>g</CommandShortcut>
-          </CommandItem>
           <CommandItem
             value="toggle theme dark light"
             onSelect={() => {

@@ -11,10 +11,11 @@ import { ChevronLeft } from "lucide-react";
 import { getRunTree, getSubagentTranscript } from "@/api/client";
 import type { SubagentNode, Transcript } from "@/api/types";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Log } from "@/features/runs/detail/Log";
+import { Prose } from "@/features/runs/detail/Prose";
+import { Cell } from "@/features/runs/detail/StatsCell";
 import { isTerminal, logDomId, type LogEntry } from "@/features/runs/derive";
 import {
   findSubagent,
@@ -22,8 +23,8 @@ import {
   transcriptEntries,
   type SubagentStats,
 } from "@/features/runs/subagent-derive";
-import { StatusBadge, toolIcon } from "@/features/runs/status";
-import { fmtCost, fmtMs } from "@/lib/format";
+import { StatusBadge, TierBadge, toolIcon } from "@/features/runs/status";
+import { fmtCost, fmtMs, tierLabel } from "@/lib/format";
 import { navigate, useRoute } from "@/lib/router";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/state/store";
@@ -50,13 +51,19 @@ function Header({
   loading: boolean;
   onBack: () => void;
 }) {
+  const tiers = useStore((store) => store.stats?.tiers);
+
   return (
     <header className="shrink-0 border-b border-border px-5 pb-4 pt-4">
       <BackButton onClick={onBack} />
 
-      <h1 className="mt-2.5 truncate text-20 font-semibold tracking-[-0.02em] text-foreground">
-        {stats?.agent || "subagent"}
-      </h1>
+      {loading ? (
+        <Skeleton className="mt-2.5 h-6 w-48 rounded-md" />
+      ) : (
+        <h1 className="mt-2.5 truncate text-20 font-semibold tracking-[-0.02em] text-foreground">
+          {stats?.agent || "subagent"}
+        </h1>
+      )}
 
       {loading ? (
         <div className="mt-3 flex items-center gap-2">
@@ -76,14 +83,15 @@ function Header({
           </Badge>
 
           {stats.model ? (
-            <Badge
-              variant="outline"
-              className="h-[18px] max-w-[18rem] shrink-0 rounded-md border-border px-1.5 font-mono text-10 font-medium tracking-tight text-foreground"
+            <span
+              className="max-w-[18rem] truncate font-mono text-11 text-foreground"
               title={stats.model}
             >
-              <span className="truncate">{stats.model}</span>
-            </Badge>
+              {stats.model}
+            </span>
           ) : null}
+
+          <TierBadge tier={tierLabel(stats.model, tiers)} className="h-[18px]" />
 
           <span className="font-mono text-11 tabular-nums text-muted-foreground">
             {fmtCost(stats.cost)} · {stats.turns} turn
@@ -142,38 +150,6 @@ function SubagentTimeline({
   );
 }
 
-function Prose({ text, empty }: { text: string; empty: string }) {
-  if (!text.trim()) {
-    return <p className="px-5 py-4 text-12 text-muted-foreground">{empty}</p>;
-  }
-  return (
-    <ScrollArea className="h-full">
-      <p className="whitespace-pre-wrap break-words px-5 py-4 font-mono text-11 leading-[1.7] text-muted-foreground">
-        {text}
-      </p>
-    </ScrollArea>
-  );
-}
-
-function StatsCell({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex min-w-0 flex-col gap-0.5 px-3.5 py-2">
-      <span className="text-10 uppercase tracking-[0.1em] text-muted-foreground">
-        {label}
-      </span>
-      <span className="truncate font-mono text-11 tabular-nums text-foreground">
-        {children}
-      </span>
-    </div>
-  );
-}
-
 function StatsStrip({
   runId,
   index,
@@ -198,10 +174,10 @@ function StatsStrip({
             {runId.slice(0, 8)}…
           </a>
         </div>
-        <StatsCell label="index">{`#${index}`}</StatsCell>
-        <StatsCell label="cost">{fmtCost(stats.cost)}</StatsCell>
-        <StatsCell label="turns">{stats.turns}</StatsCell>
-        <StatsCell label="duration">{fmtMs(stats.durationMs)}</StatsCell>
+        <Cell label="index">{`#${index}`}</Cell>
+        <Cell label="cost">{fmtCost(stats.cost)}</Cell>
+        <Cell label="turns">{stats.turns}</Cell>
+        <Cell label="duration">{fmtMs(stats.durationMs)}</Cell>
       </div>
     </footer>
   );

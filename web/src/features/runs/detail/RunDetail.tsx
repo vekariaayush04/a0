@@ -16,7 +16,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getRun } from "@/api/client";
 import { useRunEvents } from "@/api/sse";
 import type { PiEvent, Run } from "@/api/types";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   createLogState,
@@ -24,25 +23,12 @@ import {
   isTerminal,
   type LogState,
 } from "@/features/runs/derive";
-import { Markdown } from "@/features/runs/Markdown";
 import { useStore } from "@/state/store";
 import { Header } from "./Header";
 import { Log } from "./Log";
+import { Prose } from "./Prose";
 import { StatsStrip } from "./StatsStrip";
 import { Timeline } from "./Timeline";
-
-function Prose({ text, empty }: { text: string; empty: string }) {
-  if (!text.trim()) {
-    return <p className="px-5 py-4 text-12 text-muted-foreground">{empty}</p>;
-  }
-  return (
-    <ScrollArea className="h-full">
-      <div className="px-5 py-4">
-        <Markdown text={text} />
-      </div>
-    </ScrollArea>
-  );
-}
 
 export function RunDetail() {
   const runId = useStore((store) => store.selectedRun);

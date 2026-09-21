@@ -64,7 +64,8 @@ export type SubagentStats = {
 };
 
 /** Node facts with the transcript as a fallback when the run tree is
- *  unavailable. Timestamps are guarded: the daemon omits them on some trees. */
+ *  unavailable. Timestamps are guarded: the daemon omits them on some trees.
+ *  With no tree node the status is unknown, never assumed done. */
 export function subagentStats(
   node: SubagentNode | null,
   transcript: Transcript,
@@ -74,7 +75,7 @@ export function subagentStats(
   return {
     agent: node?.agent || transcript.agent || "subagent",
     model: node?.model || transcript.model,
-    status: node?.status ?? "done",
+    status: node?.status ?? "unknown",
     cost: node?.cost ?? 0,
     turns: node?.turns ?? 0,
     durationMs:

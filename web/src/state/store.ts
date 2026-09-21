@@ -5,7 +5,6 @@ import { useSyncExternalStore } from "react";
 import type { Run, Session, Stats } from "../api/types";
 
 export type Theme = "system" | "light" | "dark";
-export type View = "list" | "tree";
 
 export type State = {
   sessions: Session[];
@@ -14,7 +13,6 @@ export type State = {
   selectedSession: string | null;
   selectedRun: string | null;
   selectedSub: number | null;
-  view: View;
   theme: Theme;
   /** True while the keyboard-shortcut overlay is open. */
   overlayOpen: boolean;
@@ -59,14 +57,6 @@ export function applyTheme(theme: Theme): void {
   root.style.colorScheme = resolved;
 }
 
-/** `?view=tree` forces the runs panel into tree mode, for screenshot capture. */
-function viewFromSearch(): View | null {
-  if (typeof window === "undefined") return null;
-  const value = new URLSearchParams(window.location.search).get("view");
-  if (value === "tree") return "tree";
-  if (value === "list") return "list";
-  return null;
-}
 
 let state: State = {
   sessions: [],
@@ -75,7 +65,6 @@ let state: State = {
   selectedSession: null,
   selectedRun: null,
   selectedSub: null,
-  view: viewFromSearch() ?? "list",
   theme: readStoredTheme(),
   overlayOpen: false,
 };
@@ -165,10 +154,6 @@ export function selectRun(id: string | null): void {
 
 export function selectSub(index: number | null): void {
   setState({ selectedSub: index });
-}
-
-export function setView(view: View): void {
-  setState({ view });
 }
 
 export function setOverlayOpen(open: boolean): void {
