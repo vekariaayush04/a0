@@ -5,7 +5,6 @@ import { useSyncExternalStore } from "react";
 import type { Run, Session, Stats } from "../api/types";
 
 export type Theme = "system" | "light" | "dark";
-export type View = "list" | "tree";
 
 export type State = {
   sessions: Session[];
@@ -14,7 +13,6 @@ export type State = {
   selectedSession: string | null;
   selectedRun: string | null;
   selectedSub: number | null;
-  view: View;
   theme: Theme;
   /** True while the keyboard-shortcut overlay is open. */
   overlayOpen: boolean;
@@ -22,7 +20,17 @@ export type State = {
 
 const THEME_KEY = "sentinel.theme";
 
+/** `?theme=light|dark|system` wins over the stored choice, for screenshotting. */
+function themeFromSearch(): Theme | null {
+  if (typeof window === "undefined") return null;
+  const value = new URLSearchParams(window.location.search).get("theme");
+  if (value === "system" || value === "light" || value === "dark") return value;
+  return null;
+}
+
 function readStoredTheme(): Theme {
+  const forced = themeFromSearch();
+  if (forced) return forced;
   try {
     const value = localStorage.getItem(THEME_KEY);
     if (value === "system" || value === "light" || value === "dark") return value;
@@ -32,11 +40,23 @@ function readStoredTheme(): Theme {
   return "system";
 }
 
+/** True when "system" currently resolves to dark. */
+function systemPrefersDark(): boolean {
+  if (typeof window === "undefined" || !window.matchMedia) return false;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+/** Paint the theme onto <html>. shadcn keys off `.dark`; the legacy Tree
+ *  screens key off `[data-theme]`. Both are written so the two agree. */
 export function applyTheme(theme: Theme): void {
   if (typeof document === "undefined") return;
-  if (theme === "system") document.documentElement.removeAttribute("data-theme");
-  else document.documentElement.setAttribute("data-theme", theme);
+  const root = document.documentElement;
+  const resolved = theme === "system" ? (systemPrefersDark() ? "dark" : "light") : theme;
+  root.setAttribute("data-theme", resolved);
+  root.classList.toggle("dark", resolved === "dark");
+  root.style.colorScheme = resolved;
 }
+
 
 let state: State = {
   sessions: [],
@@ -45,7 +65,6 @@ let state: State = {
   selectedSession: null,
   selectedRun: null,
   selectedSub: null,
-  view: "list",
   theme: readStoredTheme(),
   overlayOpen: false,
 };
@@ -93,12 +112,25 @@ export function setRunsForSession(sessionId: string, runs: Run[]): void {
   }));
 }
 
+const TERMINAL = new Set(["done", "failed", "cancelled"]);
+
+/** Merge a fetched snapshot into the cache. Sessions missing from the snapshot
+ *  are kept, and a cached terminal run beats a stale in-flight copy, so a
+ *  status frame that lands mid-fetch is not overwritten. */
 export function setRuns(runs: Run[]): void {
-  const bySession: Record<string, Run[]> = {};
-  for (const run of runs) {
-    (bySession[run.sessionId] ??= []).push(run);
-  }
-  setState({ runsBySession: bySession });
+  setState((current) => {
+    const bySession: Record<string, Run[]> = { ...current.runsBySession };
+    const fetched: Record<string, Run[]> = {};
+    for (const run of runs) (fetched[run.sessionId] ??= []).push(run);
+    for (const [sessionId, list] of Object.entries(fetched)) {
+      const cached = new Map((bySession[sessionId] ?? []).map((r) => [r.id, r]));
+      bySession[sessionId] = list.map((run) => {
+        const prev = cached.get(run.id);
+        return prev && TERMINAL.has(prev.status) && !TERMINAL.has(run.status) ? prev : run;
+      });
+    }
+    return { runsBySession: bySession };
+  });
 }
 
 /** Patch a single run wherever it is cached (used by SSE status frames). */
@@ -135,10 +167,6 @@ export function selectRun(id: string | null): void {
 
 export function selectSub(index: number | null): void {
   setState({ selectedSub: index });
-}
-
-export function setView(view: View): void {
-  setState({ view });
 }
 
 export function setOverlayOpen(open: boolean): void {

@@ -1,43 +1,147 @@
+/* Geist Sans + Geist Mono from the `geist` npm package. The package ships for
+   next/font (JS), so the variable woff2 files are wired up by hand here; Vite
+   fingerprints and emits them into dist/assets. */
+@font-face {
+  font-family: "Geist Sans";
+  src: url("../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2")
+    format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("../node_modules/geist/dist/fonts/geist-mono/GeistMono-Variable.woff2")
+    format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ---- tokens ----------------------------------------------------------- */
+/* ---------------------------------------------------------------------------
+   Sentinel UI v3 tokens.
+
+   Monochrome by construction: every surface, border and text colour is a step
+   on a neutral ramp, so there is exactly one hue in the palette. The single
+   accent (--live, #0a84ff) is reserved for live/running state and nothing
+   else. Depth comes from surface steps plus 1px borders, never from shadows
+   (one soft shadow is allowed on popovers and sheets).
+
+   Two token families live here:
+     * shadcn/ui tokens (--background, --card, --border, …) consumed by the
+       generated components in src/components/ui/*.
+     * Sentinel legacy tokens (--fg, --fg-2, --line, …) still consumed by the
+       Tree and Subagent screens until those are rebuilt. Both families are
+       derived from the same ramp so the two never disagree.
+--------------------------------------------------------------------------- */
 
 :root {
-  --bg: #fafafa;
-  --fg: #0a0a0a;
-  --accent: #0a84ff;
+  /* --- shadcn/ui (light: near-white) --- */
+  --background: 0 0% 98%;
+  --foreground: 0 0% 4%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 4%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 4%;
+
+  --primary: 0 0% 9%;
+  --primary-foreground: 0 0% 98%;
+
+  --secondary: 0 0% 94%;
+  --secondary-foreground: 0 0% 9%;
+
+  --muted: 0 0% 95%;
+  --muted-foreground: 0 0% 42%;
+
+  --accent: 0 0% 93%;
+  --accent-foreground: 0 0% 9%;
+
+  /* Monochrome by decree: "destructive" is the foreground, not red. Errors
+     read as an emphasised 2px foreground bar, never as a second hue. */
+  --destructive: 0 0% 9%;
+  --destructive-foreground: 0 0% 98%;
+
+  --border: 0 0% 89%;
+  --input: 0 0% 88%;
+  --ring: 0 0% 63%;
+
+  --radius: 0.5rem; /* 8px controls; cards use rounded-xl = 12px */
+
+  /* --- the one accent --- */
+  --live: 210 100% 52%; /* #0a84ff */
+  --live-foreground: 0 0% 100%;
+
+  /* --- elevation ramp (surface steps, used by layout chrome) --- */
+  --elev-0: 0 0% 98%;
+  --elev-1: 0 0% 100%;
+  --elev-2: 0 0% 100%;
+
   color-scheme: light;
 
+  /* --- legacy Sentinel tokens (Tree / Subagent screens) --- */
+  --bg: hsl(var(--background));
+  --fg: hsl(var(--foreground));
+  --accent-rgb: #0a84ff;
   --fg-2: color-mix(in srgb, var(--fg) 62%, transparent);
   --fg-3: color-mix(in srgb, var(--fg) 40%, transparent);
   --fg-4: color-mix(in srgb, var(--fg) 24%, transparent);
-  --line: color-mix(in srgb, var(--fg) 10%, transparent);
-  --hover: color-mix(in srgb, var(--fg) 5%, transparent);
-  --raised: color-mix(in srgb, var(--fg) 3%, var(--bg));
+  --line: hsl(var(--border));
+  --hover: hsl(var(--accent));
+  --raised: hsl(var(--card));
+  /** Resolved accent for SVG `fill`/`stroke`, which cannot take a bare hsl triple. */
+  --live-color: hsl(var(--live));
 }
 
-[data-theme="dark"] {
-  --bg: #000;
-  --fg: #fff;
+/* True dark: near-black ground, cards one step up. */
+:root.dark,
+:root[data-theme="dark"] {
+  --background: 0 0% 3%;
+  --foreground: 0 0% 98%;
+
+  --card: 0 0% 7%;
+  --card-foreground: 0 0% 98%;
+
+  --popover: 0 0% 8%;
+  --popover-foreground: 0 0% 98%;
+
+  --primary: 0 0% 98%;
+  --primary-foreground: 0 0% 9%;
+
+  --secondary: 0 0% 12%;
+  --secondary-foreground: 0 0% 98%;
+
+  --muted: 0 0% 11%;
+  --muted-foreground: 0 0% 60%;
+
+  --accent: 0 0% 13%;
+  --accent-foreground: 0 0% 98%;
+
+  --destructive: 0 0% 98%;
+  --destructive-foreground: 0 0% 9%;
+
+  --border: 0 0% 16%;
+  --input: 0 0% 19%;
+  --ring: 0 0% 45%;
+
+  --elev-0: 0 0% 3%;
+  --elev-1: 0 0% 7%;
+  --elev-2: 0 0% 9%;
+
   color-scheme: dark;
 }
 
-/* Auto theme (no explicit light/dark choice) follows the operating system. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #000;
-    --fg: #fff;
-    color-scheme: dark;
-  }
-}
-
-/* ---- base ------------------------------------------------------------- */
+/* ---- base --------------------------------------------------------------- */
 
 @layer base {
   * {
-    border-color: var(--line);
+    @apply border-border;
   }
 
   html,
@@ -47,12 +151,12 @@
   }
 
   body {
+    @apply bg-background text-foreground;
     margin: 0;
-    background: var(--bg);
-    color: var(--fg);
-    font-family: -apple-system, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
+    font-family: "Geist Sans", -apple-system, system-ui, sans-serif;
     font-size: 13px;
     line-height: 1.5;
+    font-feature-settings: "cv11", "ss01";
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
@@ -63,20 +167,35 @@
   }
 
   ::selection {
-    background: color-mix(in srgb, var(--fg) 16%, transparent);
+    background: hsl(var(--foreground) / 0.16);
   }
 
   ::-webkit-scrollbar {
     width: 10px;
     height: 10px;
   }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
   ::-webkit-scrollbar-thumb {
-    background: var(--fg-4);
+    background: hsl(var(--foreground) / 0.18);
     border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--foreground) / 0.3);
+    background-clip: content-box;
+  }
+
+  /* Tabular figures everywhere numbers are compared column-wise. */
+  .tnum,
+  .font-mono {
+    font-variant-numeric: tabular-nums;
   }
 }
 
-/* ---- motion ----------------------------------------------------------- */
+/* ---- motion ------------------------------------------------------------- */
 
 @keyframes sentinel-pulse {
   0%,
@@ -94,12 +213,197 @@
   animation: sentinel-pulse 1.6s ease-in-out infinite;
 }
 
+/* Accent halo behind a live dot. */
+.live-dot::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 999px;
+  background: hsl(var(--live) / 0.22);
+  animation: sentinel-pulse 1.6s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .pulse {
+  .pulse,
+  .live-dot::after {
     animation: none;
   }
-  * {
+  *,
+  *::before,
+  *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
+}
+
+/* React Flow inherits our tokens so the tree rebuild needs no extra theming. */
+.react-flow {
+  --xy-background-color: hsl(var(--background));
+  --xy-node-border-default: 1px solid hsl(var(--border));
+  --xy-node-background-color-default: hsl(var(--card));
+  --xy-node-color-default: hsl(var(--foreground));
+  --xy-edge-stroke-default: hsl(var(--border));
+  --xy-attribution-background-color-default: transparent;
+}
+
+/* ---- markdown prose ----------------------------------------------------- */
+/*
+   Monochrome document styling for assistant markdown (Run log + Result tab).
+   The fenced-code chrome is a component override in
+   features/runs/Markdown.tsx; everything else lives here so the rhythm is
+   identical wherever assistant prose appears. Type scale is deliberately
+   smaller than page chrome so a long message reads as a document body.
+*/
+.prose-mono {
+  font-size: 14px;
+  line-height: 24px;
+  color: hsl(var(--foreground));
+  overflow-wrap: anywhere;
+}
+
+.prose-mono > :first-child {
+  margin-top: 0;
+}
+.prose-mono > :last-child {
+  margin-bottom: 0;
+}
+.prose-mono > * + * {
+  margin-top: 12px;
+}
+
+.prose-mono h1,
+.prose-mono h2,
+.prose-mono h3,
+.prose-mono h4,
+.prose-mono h5,
+.prose-mono h6 {
+  color: hsl(var(--foreground));
+}
+.prose-mono h1 {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+}
+.prose-mono h2 {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.prose-mono h3 {
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+}
+.prose-mono h4,
+.prose-mono h5,
+.prose-mono h6 {
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+}
+.prose-mono > * + h1,
+.prose-mono > * + h2,
+.prose-mono > * + h3 {
+  margin-top: 20px;
+}
+.prose-mono > * + h4,
+.prose-mono > * + h5,
+.prose-mono > * + h6 {
+  margin-top: 16px;
+}
+.prose-mono h1 + *,
+.prose-mono h2 + *,
+.prose-mono h3 + *,
+.prose-mono h4 + * {
+  margin-top: 8px;
+}
+
+.prose-mono strong {
+  font-weight: 600;
+}
+.prose-mono em {
+  font-style: italic;
+}
+.prose-mono a {
+  color: hsl(var(--foreground));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: hsl(var(--muted-foreground) / 0.55);
+}
+.prose-mono a:hover {
+  text-decoration-color: hsl(var(--foreground));
+}
+
+.prose-mono ul,
+.prose-mono ol {
+  padding-left: 20px;
+}
+.prose-mono ul {
+  list-style: disc;
+}
+.prose-mono ol {
+  list-style: decimal;
+}
+.prose-mono li {
+  margin-top: 2px;
+}
+.prose-mono li::marker {
+  color: hsl(var(--muted-foreground));
+}
+.prose-mono li > ul,
+.prose-mono li > ol {
+  margin-top: 2px;
+}
+
+.prose-mono blockquote {
+  border-left: 2px solid hsl(var(--border));
+  padding-left: 12px;
+  color: hsl(var(--muted-foreground));
+}
+.prose-mono hr {
+  border: 0;
+  border-top: 1px solid hsl(var(--border));
+}
+
+.prose-mono code {
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 12px;
+}
+.prose-mono :not(pre) > code {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+.prose-mono pre {
+  margin: 0;
+}
+
+.prose-mono table {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 12px;
+  line-height: 18px;
+}
+.prose-mono th,
+.prose-mono td {
+  border: 1px solid hsl(var(--border));
+  padding: 4px 8px;
+  text-align: left;
+}
+.prose-mono th {
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  font-weight: 500;
+}
+
+.prose-mono img {
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid hsl(var(--border));
 }
