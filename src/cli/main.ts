@@ -213,7 +213,7 @@ async function main() {
       await cancelCommand();
       break;
     case "open":
-      Bun.spawn(["xdg-open", BASE]);
+      Bun.spawn([process.platform === "darwin" ? "open" : "xdg-open", BASE]);
       break;
     case "daemon":
       await import("../daemon/main.ts");

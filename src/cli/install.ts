@@ -16,25 +16,8 @@ export async function install() {
     console.log(build.status === 0 ? "web ui built" : "web ui build failed; continuing (the daemon will serve the legacy page)");
   }
 
-  const unitDir = join(home, ".config/systemd/user");
-  mkdirSync(unitDir, { recursive: true });
-  const unitText = await Bun.file(join(repo, "systemd/sentineld.service")).text();
-  writeFileSync(
-    join(unitDir, "sentineld.service"),
-    unitText.replace("%BUN%", bun).replace("%REPO%", repo).replace("%PATH%", process.env.PATH ?? "/usr/bin")
-  );
-  console.log(`systemd unit written to ${join(unitDir, "sentineld.service")}`);
-
-  const r = Bun.spawnSync([
-    "sh",
-    "-c",
-    "systemctl --user daemon-reload && systemctl --user enable --now sentineld && systemctl --user restart sentineld",
-  ]);
-  console.log(
-    r.exitCode === 0
-      ? "sentineld enabled and (re)started"
-      : `systemd step failed (${r.stderr.toString().trim()}); run \`sentinel daemon\` manually`
-  );
+  if (process.platform === "darwin") installLaunchAgent(repo, home, bun);
+  else await installSystemdUnit(repo, home, bun);
 
   const skillDir = join(home, ".claude/skills");
   mkdirSync(skillDir, { recursive: true });
@@ -63,4 +46,69 @@ export async function install() {
   }
 
   console.log(`ui: http://127.0.0.1:${process.env.SENTINEL_PORT ?? 4747}`);
+}
+
+async function installSystemdUnit(repo: string, home: string, bun: string) {
+  const unitDir = join(home, ".config/systemd/user");
+  mkdirSync(unitDir, { recursive: true });
+  const unitText = await Bun.file(join(repo, "systemd/sentineld.service")).text();
+  writeFileSync(
+    join(unitDir, "sentineld.service"),
+    unitText.replace("%BUN%", bun).replace("%REPO%", repo).replace("%PATH%", process.env.PATH ?? "/usr/bin")
+  );
+  console.log(`systemd unit written to ${join(unitDir, "sentineld.service")}`);
+
+  const r = Bun.spawnSync([
+    "sh",
+    "-c",
+    "systemctl --user daemon-reload && systemctl --user enable --now sentineld && systemctl --user restart sentineld",
+  ]);
+  console.log(
+    r.exitCode === 0
+      ? "sentineld enabled and (re)started"
+      : `systemd step failed (${r.stderr.toString().trim()}); run \`sentinel daemon\` manually`
+  );
+}
+
+const LAUNCHD_LABEL = "dev.sentinel.sentineld";
+
+function installLaunchAgent(repo: string, home: string, bun: string) {
+  const agentDir = join(home, "Library/LaunchAgents");
+  const logDir = join(home, "Library/Logs");
+  mkdirSync(agentDir, { recursive: true });
+  mkdirSync(logDir, { recursive: true });
+  const plistPath = join(agentDir, `${LAUNCHD_LABEL}.plist`);
+  const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  writeFileSync(
+    plistPath,
+    `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>${LAUNCHD_LABEL}</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>${esc(bun)}</string>
+    <string>${esc(join(repo, "src/daemon/main.ts"))}</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict><key>PATH</key><string>${esc(process.env.PATH ?? "/usr/bin:/bin")}</string></dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>${esc(join(logDir, "sentineld.log"))}</string>
+  <key>StandardErrorPath</key><string>${esc(join(logDir, "sentineld.log"))}</string>
+</dict>
+</plist>
+`
+  );
+  console.log(`launch agent written to ${plistPath}`);
+
+  const domain = `gui/${process.getuid?.() ?? 501}`;
+  Bun.spawnSync(["launchctl", "bootout", `${domain}/${LAUNCHD_LABEL}`]); // fails harmlessly when not loaded
+  const r = Bun.spawnSync(["launchctl", "bootstrap", domain, plistPath]);
+  console.log(
+    r.exitCode === 0
+      ? "sentineld loaded and started"
+      : `launchctl step failed (${r.stderr.toString().trim()}); run \`sentinel daemon\` manually`
+  );
 }

@@ -28,6 +28,7 @@ import { Header } from "./Header";
 import { Log } from "./Log";
 import { Prose } from "./Prose";
 import { StatsStrip } from "./StatsStrip";
+import { Subagents } from "./Subagents";
 import { Timeline } from "./Timeline";
 
 export function RunDetail() {
@@ -97,6 +98,7 @@ export function RunDetail() {
     <div className="flex h-full min-h-0 flex-col">
       <Header run={run} onRun={onRun} />
       <Timeline entries={entries} version={logVersion} run={run} />
+      {run ? <Subagents run={run} /> : null}
 
       <Tabs defaultValue="log" className="flex min-h-0 flex-1 flex-col">
         <div className="shrink-0 border-b border-border px-5 py-2">

@@ -29,8 +29,9 @@ editing briefs in the UI, OpenRouter (the stored key is dead).
 
 ### sentineld (daemon)
 
-- Bun HTTP server on `127.0.0.1:4747`, run as a systemd user service
-  (`sentineld.service`), with `sentinel daemon` as a manual fallback.
+- Bun HTTP server on `127.0.0.1:4747`, run as a per-user service (systemd
+  `sentineld.service` on Linux, a launchd LaunchAgent on macOS), with
+  `sentinel daemon` as a manual fallback.
 - State directory `~/.local/share/sentinel/`:
   - `sentinel.db` — SQLite (bun:sqlite).
   - `runs/<runId>/brief.md`, `events.jsonl` (raw Pi JSON events),
@@ -65,7 +66,7 @@ sentinel result <runId>           # prints result.md
 sentinel cancel <runId>
 sentinel open                     # opens the UI in the browser
 sentinel daemon                   # runs the daemon in the foreground
-sentinel install                  # writes the systemd user unit, enables it, symlinks the skill
+sentinel install                  # installs the user service (systemd or launchd), symlinks the CLI and skill
 ```
 
 ### Claude skill `~/.claude/skills/sentinel/SKILL.md`

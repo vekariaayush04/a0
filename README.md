@@ -31,13 +31,15 @@ can always find them again.
   `logs`, `result`, `cancel`, `open`.
 - **A Claude Code skill** — Claude plans, writes one brief per independent
   unit of work, fires them in parallel, waits, verifies, and reports.
-- **The UI** — a small Vite + React app in `web/`, served by the daemon
-  as a single page. Sessions on the left, runs in the middle, the live
-  log on the right. Pure black and white.
-- **Spawn tree view** — when a run's Pi agent fans out subagents (via the
-  pi-subagents extension), the UI can show them as a tree with per-agent
-  cost, turns, status and tool calls, drilling into any subagent's full
-  transcript.
+- **The UI** — a Vite + React app in `web/` (shadcn/ui, Tailwind, Geist),
+  served by the daemon. Sessions on the left, runs in a resizable middle
+  panel, the run on the right: tool timeline, live virtualized log, brief,
+  rendered result, tokens and cost. A home overview shows today's runs and
+  spend. Black and white, light and dark, keyboard driven (`j`/`k`,
+  `Enter`, `Esc`, `⌘K`, `?`).
+- **Subagent transcripts** — when a run's Pi agent fans out subagents (via
+  the pi-subagents extension), each one appears as a chip above the run's log; click it to read that
+  subagent's full transcript, cost and tool calls.
 
 ## Requirements
 
@@ -48,27 +50,83 @@ can always find them again.
 
 ## Install
 
+The steps are the same on Linux and macOS; only the background service
+differs, and `sentinel install` picks the right one.
+
 ```bash
 git clone git@github.com:vekariaayush04/sentinel.git
 cd sentinel
-bun install         # also runs the web UI postinstall build when web/node_modules exists
-bun link            # puts `sentinel` on your PATH
-sentinel install    # builds the web UI, then user systemd service + Claude skill symlink
-sentinel open       # opens the UI
+bun install
+bun src/cli/main.ts install   # builds the UI, installs the service, links CLI + skill
+sentinel open                 # opens http://127.0.0.1:4747
 ```
 
-`sentinel install` builds the web UI before starting the daemon: it runs
-`bun install --frozen-lockfile` and `bun run build` inside `web/`, and if
-that fails it prints why and continues (the daemon then serves the legacy
-page). For manual setups without `sentinel install`, build the UI once
-with `bun run web:build` from the repo root.
+`sentinel install` does four things:
 
-`sentinel install` writes and enables the `sentineld` systemd user
-service, restarting it if it was already running, symlinks
-`~/.local/bin/sentinel` onto your PATH, and symlinks the Claude skill into
-`~/.claude/skills/sentinel`.
+1. Builds the web UI (`bun install --frozen-lockfile` and `bun run build`
+   inside `web/`). If that fails it says why and carries on; the daemon
+   then serves a minimal legacy page until you run `bun run web:build`.
+2. Installs and starts the daemon as a per-user background service that
+   starts at login and restarts if it dies (see below).
+3. Symlinks the CLI to `~/.local/bin/sentinel`. Make sure `~/.local/bin`
+   is on your `PATH`.
+4. Symlinks the Claude Code skill to `~/.claude/skills/sentinel`.
 
-Without systemd, run `sentinel daemon` in a terminal instead.
+Run it again after `git pull`; it is safe to repeat. The daemon runs from
+your checkout, so keep the folder where it is.
+
+### Linux (systemd)
+
+The service is a systemd user unit at
+`~/.config/systemd/user/sentineld.service`.
+
+```bash
+systemctl --user status sentineld
+systemctl --user restart sentineld
+journalctl --user -u sentineld -f        # daemon logs
+loginctl enable-linger "$USER"           # optional: keep it running while logged out (servers)
+```
+
+### macOS (launchd)
+
+The service is a LaunchAgent at
+`~/Library/LaunchAgents/dev.sentinel.sentineld.plist`, logging to
+`~/Library/Logs/sentineld.log`.
+
+```bash
+launchctl print gui/$(id -u)/dev.sentinel.sentineld        # status
+launchctl kickstart -k gui/$(id -u)/dev.sentinel.sentineld # restart
+tail -f ~/Library/Logs/sentineld.log                       # daemon logs
+```
+
+`~/.local/bin` is not on the default macOS `PATH`; add
+`export PATH="$HOME/.local/bin:$PATH"` to `~/.zshrc`.
+
+### No service manager
+
+Anywhere else (containers, WSL without systemd), run `sentinel daemon` in
+a terminal or under your own supervisor.
+
+### Keeping the machine awake
+
+Long runs stop if the laptop sleeps. Wrap the wait:
+
+```bash
+systemd-inhibit --what=sleep sentinel wait <runId>   # Linux
+caffeinate -i sentinel wait <runId>                  # macOS
+```
+
+### Uninstall
+
+```bash
+# Linux
+systemctl --user disable --now sentineld && rm ~/.config/systemd/user/sentineld.service
+# macOS
+launchctl bootout gui/$(id -u)/dev.sentinel.sentineld && rm ~/Library/LaunchAgents/dev.sentinel.sentineld.plist
+# both
+rm ~/.local/bin/sentinel ~/.claude/skills/sentinel
+rm -rf ~/.local/share/sentinel    # run history and logs
+```
 
 ## Usage
 
