@@ -112,12 +112,25 @@ export function setRunsForSession(sessionId: string, runs: Run[]): void {
   }));
 }
 
+const TERMINAL = new Set(["done", "failed", "cancelled"]);
+
+/** Merge a fetched snapshot into the cache. Sessions missing from the snapshot
+ *  are kept, and a cached terminal run beats a stale in-flight copy, so a
+ *  status frame that lands mid-fetch is not overwritten. */
 export function setRuns(runs: Run[]): void {
-  const bySession: Record<string, Run[]> = {};
-  for (const run of runs) {
-    (bySession[run.sessionId] ??= []).push(run);
-  }
-  setState({ runsBySession: bySession });
+  setState((current) => {
+    const bySession: Record<string, Run[]> = { ...current.runsBySession };
+    const fetched: Record<string, Run[]> = {};
+    for (const run of runs) (fetched[run.sessionId] ??= []).push(run);
+    for (const [sessionId, list] of Object.entries(fetched)) {
+      const cached = new Map((bySession[sessionId] ?? []).map((r) => [r.id, r]));
+      bySession[sessionId] = list.map((run) => {
+        const prev = cached.get(run.id);
+        return prev && TERMINAL.has(prev.status) && !TERMINAL.has(run.status) ? prev : run;
+      });
+    }
+    return { runsBySession: bySession };
+  });
 }
 
 /** Patch a single run wherever it is cached (used by SSE status frames). */

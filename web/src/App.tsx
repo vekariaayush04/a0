@@ -4,11 +4,11 @@
 //   └ content
 //     ├ Topbar (breadcrumb + live stats + ⌘K)
 //     └ ResizablePanelGroup
-//       ├ runs panel  — Tabs: Runs | Tree   (min 340px)
+//       ├ runs panel  — run list           (min 340px)
 //       └ detail panel — RunDetail / SubagentView
 //
 // App owns the always-mounted keyboard handler and the route -> store
-// reconciliation, so list/tree mode and deep links behave identically at every
+// reconciliation, so keys and deep links behave identically at every
 // breakpoint. Below 700px only the route's own pane mounts.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -75,7 +75,7 @@ function findRun(bySession: Record<string, Run[]>, id: string): Run | null {
 /** Animated pane wrapper; route changes crossfade through AnimatePresence.
  *  `className` defaults to a full-height flex column, which is right for a
  *  pane that owns its own scrolling. A pane rendered *inside* a scroll region
- *  (the runs/tree body) must pass `min-h-full` instead, or `h-full` would clip
+ *  (a scrolling list body) must pass `min-h-full` instead, or `h-full` would clip
  *  content taller than the viewport. */
 function Pane({
   paneKey,
