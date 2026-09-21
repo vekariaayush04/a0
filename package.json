@@ -1,10 +1,10 @@
 {
-  "name": "sentinel",
+  "name": "a0",
   "version": "0.1.0",
   "description": "Plan in Claude. Execute in Pi. Watch everything from one place.",
   "license": "MIT",
   "type": "module",
-  "bin": { "sentinel": "src/cli/main.ts" },
+  "bin": { "a0": "src/cli/main.ts" },
   "scripts": {
     "dev": "bun --watch src/daemon/main.ts",
     "daemon": "bun src/daemon/main.ts",

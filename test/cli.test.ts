@@ -6,9 +6,9 @@ const tiers = { l1: "muse-spark-1.3-contributor", l2: "deepseek-v4.1-flash", l3:
 const defaults = { provider: "opencode-go", model: "deepseek-v4.1-flash", thinking: "high" };
 const cli = async (...args: string[]) => { const p = Bun.spawn(["bun", join(import.meta.dir, "../src/cli/main.ts"), ...args], { env, stdout: "pipe", stderr: "pipe" }); const out = await new Response(p.stdout).text(); return { code: await p.exited, out, err: await new Response(p.stderr).text() }; };
 beforeAll(() => {
-  home = mkdtempSync(join(tmpdir(), "sentinel-")); const store = new Store(":memory:"); const bus = new Bus();
+  home = mkdtempSync(join(tmpdir(), "a0-")); const store = new Store(":memory:"); const bus = new Bus();
   server = startServer({ store, runner: new Runner(store, bus, { home, piBin: join(import.meta.dir, "fake-pi/pi"), concurrency: 2, timeout: 60 }), bus, port: 0, uiPath: join(import.meta.dir, "../src/ui/index.html"), tiers, defaults });
-  env = { ...process.env as any, SENTINEL_URL: `http://127.0.0.1:${server.port}`, CLAUDE_SESSION_ID: "cli-sess" };
+  env = { ...process.env as any, A0_URL: `http://127.0.0.1:${server.port}`, CLAUDE_SESSION_ID: "cli-sess" };
 });
 afterAll(() => server.stop(true));
 

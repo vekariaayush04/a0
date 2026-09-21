@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { webDistStatus } from "../src/daemon/webdist";
 
 test("webDistStatus reports missing for an empty dist dir", () => {
-  const dir = mkdtempSync(join(tmpdir(), "sentinel-webdist-"));
+  const dir = mkdtempSync(join(tmpdir(), "a0-webdist-"));
   try {
     expect(webDistStatus(dir)).toBe("missing");
   } finally {
@@ -14,7 +14,7 @@ test("webDistStatus reports missing for an empty dist dir", () => {
 });
 
 test("webDistStatus reports ok once index.html exists", () => {
-  const dir = mkdtempSync(join(tmpdir(), "sentinel-webdist-"));
+  const dir = mkdtempSync(join(tmpdir(), "a0-webdist-"));
   try {
     writeFileSync(join(dir, "index.html"), "<!doctype html>");
     expect(webDistStatus(dir)).toBe("ok");

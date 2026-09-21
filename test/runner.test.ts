@@ -3,7 +3,7 @@ import { mkdtempSync } from "node:fs"; import { tmpdir } from "node:os"; import 
 import { Store } from "../src/daemon/store"; import { Bus } from "../src/daemon/bus"; import { Runner } from "../src/daemon/runner";
 const PI = join(import.meta.dir, "fake-pi/pi");
 let home: string, store: Store, bus: Bus;
-beforeEach(() => { home = mkdtempSync(join(tmpdir(), "sentinel-")); store = new Store(":memory:"); bus = new Bus(); });
+beforeEach(() => { home = mkdtempSync(join(tmpdir(), "a0-")); store = new Store(":memory:"); bus = new Bus(); });
 const mk = (o: Partial<ConstructorParameters<typeof Runner>[2]> = {}) => new Runner(store, bus, { home, piBin: PI, concurrency: 1, timeout: 60, ...o });
 const base = () => ({ sessionId: "s", cwd: home, title: "t", brief: "hello" });
 

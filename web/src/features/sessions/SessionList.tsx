@@ -119,7 +119,7 @@ export function SessionList({ onNavigate }: { onNavigate?: () => void }) {
       <div className="px-2.5 py-6">
         <p className="text-12 text-muted-foreground">No sessions yet</p>
         <p className="mt-1 text-11 text-muted-foreground/70">
-          In Claude Code, say “use sentinel to …”
+          In Claude Code, say “use a0 to …”
         </p>
       </div>
     );

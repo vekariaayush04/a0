@@ -1,4 +1,4 @@
-# Sentinel UI v3 — house guide
+# a0 UI v3 — house guide
 
 Read this before touching `web/src`. Follow it verbatim: the point is that a
 screen written by someone who has never seen the app still looks like it was
@@ -82,7 +82,7 @@ keeps the shadcn names, and its sizes take explicit units (`minSize="340px"`).
 | `sonner` | `import { toast } from "sonner"` | `<Toaster />` already mounted in App |
 | `geist` | — | loaded via `@font-face` in `styles.css` |
 
-### Sentinel primitives
+### a0 primitives
 
 - `src/features/runs/status.tsx` — **use these, do not re-derive them**:
   `StatusGlyph`, `StatusBadge`, `TierBadge`, `LiveDot`, `toolIcon(name)`.

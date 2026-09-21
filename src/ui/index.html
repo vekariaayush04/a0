@@ -1,4 +1,4 @@
-<title>Sentinel</title>
+<title>a0</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%23888' stroke-width='2.5'/%3E%3Ccircle cx='16' cy='16' r='3.5' fill='%23888'/%3E%3C/svg%3E">
 <style>
@@ -374,7 +374,7 @@ pre { white-space: pre-wrap; word-break: break-word; font: 12px/1.6 var(--mono);
     </button>
     <div class="brand">
       <svg width="15" height="15" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="11" stroke="currentColor" stroke-width="2.5"/><circle cx="16" cy="16" r="3.5" fill="currentColor"/></svg>
-      Sentinel
+      a0
     </div>
     <div class="grow"></div>
     <div class="chips" id="chips"></div>
@@ -483,7 +483,7 @@ const ICONS = {
 };
 
 let theme = "system";
-try { const v = localStorage.getItem("sentinel.theme"); if (THEMES.includes(v)) theme = v; } catch (_) {}
+try { const v = localStorage.getItem("a0.theme"); if (THEMES.includes(v)) theme = v; } catch (_) {}
 try {
   const q = new URLSearchParams(location.search).get("theme");
   if (THEMES.includes(q)) theme = q;
@@ -498,7 +498,7 @@ function applyTheme() {
 }
 function cycleTheme() {
   theme = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
-  try { localStorage.setItem("sentinel.theme", theme); } catch (_) {}
+  try { localStorage.setItem("a0.theme", theme); } catch (_) {}
   applyTheme();
 }
 applyTheme();
@@ -519,7 +519,7 @@ let esRunId = null;
 
 /* view: "list" | "tree" (the runs pane is replaced by the spawn tree) */
 let view = "list";
-try { const v = localStorage.getItem("sentinel.view"); if (v === "list" || v === "tree") view = v; } catch (_) {}
+try { const v = localStorage.getItem("a0.view"); if (v === "list" || v === "tree") view = v; } catch (_) {}
 
 /* ?mock=tree swaps in a hard-coded sample tree so the view can be developed and
    screenshotted without a daemon. Unreachable unless the param is present. */
@@ -600,7 +600,7 @@ function renderSessions() {
   const list = $("#sessionList");
   if (!sessions.length) {
     list.innerHTML =
-      '<div class="empty"><strong>No sessions yet</strong>In Claude Code, say <code>use sentinel to …</code></div>';
+      '<div class="empty"><strong>No sessions yet</strong>In Claude Code, say <code>use a0 to …</code></div>';
     return;
   }
   list.innerHTML = sessions.map(s => `
@@ -675,7 +675,7 @@ function renderHeads() { renderHead($("#runsHead")); renderHead($("#treeHead"));
 function setView(v) {
   if (v !== "list" && v !== "tree") return;
   view = v;
-  try { localStorage.setItem("sentinel.view", v); } catch (_) {}
+  try { localStorage.setItem("a0.view", v); } catch (_) {}
   document.body.dataset.view = v;
   renderHeads();
   if (v === "tree") loadTree();
@@ -1119,7 +1119,7 @@ function mockTree() {
   };
   runC.tools.push({ name: "write", target: "NOTES.md", t0: T + 300000, t1: null, err: false });
   return {
-    kind: "session", id: selSession || "mock-session", title: "sentinel — spawn tree",
+    kind: "session", id: selSession || "mock-session", title: "a0 — spawn tree",
     runCount: 3, totalCost: 0.163, children: [runA, runB, runC],
   };
 }
@@ -1431,7 +1431,7 @@ function renderTree() {
 
   if (treeState.err === "unsupported") {
     body.innerHTML = '<div class="empty"><strong>Tree view needs the updated daemon</strong>' +
-      'This daemon does not serve <code>/api/sessions/:id/tree</code> yet. Switch back to <code>List</code>, or restart Sentinel on a newer build.</div>';
+      'This daemon does not serve <code>/api/sessions/:id/tree</code> yet. Switch back to <code>List</code>, or restart a0 on a newer build.</div>';
     return;
   }
   if (treeState.err) {

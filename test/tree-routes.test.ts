@@ -8,7 +8,7 @@ const defaults = { provider: "opencode-go", model: "deepseek-v4.1-flash", thinki
 const fixtureRun = join(import.meta.dir, "fixtures/tree/run");
 
 beforeAll(() => {
-  home = mkdtempSync(join(tmpdir(), "sentinel-tree-")); const store = new Store(":memory:"); const bus = new Bus();
+  home = mkdtempSync(join(tmpdir(), "a0-tree-")); const store = new Store(":memory:"); const bus = new Bus();
   runner = new Runner(store, bus, { home, piBin: join(import.meta.dir, "fake-pi/pi"), concurrency: 2, timeout: 60 });
   server = startServer({ store, runner, bus, port: 0, uiPath: join(import.meta.dir, "../src/ui/index.html"), tiers, defaults });
   url = `http://127.0.0.1:${server.port}`;

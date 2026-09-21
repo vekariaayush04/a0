@@ -3,11 +3,11 @@ import { loadConfig } from "../config"; import { Store } from "./store"; import 
 const cfg = loadConfig(); mkdirSync(cfg.home, { recursive: true });
 const webDist = join(import.meta.dir, "../../web/dist");
 if (webDistStatus(webDist) === "missing") console.log("web ui not built; serving legacy page. Run: bun run web:build");
-const store = new Store(join(cfg.home, "sentinel.db"));
+const store = new Store(join(cfg.home, "a0.db"));
 const n = store.failInFlight("daemon restarted"); if (n) console.log(`marked ${n} in-flight run(s) failed`);
 const bus = new Bus(); const runner = new Runner(store, bus, cfg);
 const server = startServer({ store, runner, bus, port: cfg.port, uiPath: join(import.meta.dir, "../ui/index.html"), tiers: cfg.tiers, defaults: { provider: cfg.provider, model: cfg.model, thinking: cfg.thinking } });
-console.log(`sentineld listening on http://127.0.0.1:${server.port}`);
+console.log(`a0d listening on http://127.0.0.1:${server.port}`);
 
 let shuttingDown = false;
 function shutdown() {

@@ -1,4 +1,4 @@
-// Motion vocabulary for Sentinel UI v3.
+// Motion vocabulary for a0 UI v3.
 //
 // One easing, three durations, four variants. Every animated surface in the
 // app should pull from here rather than inventing its own numbers, so panes,

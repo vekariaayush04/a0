@@ -5,7 +5,7 @@ let url: string, server: any, home: string;
 const tiers = { l1: "muse-spark-1.3-contributor", l2: "deepseek-v4.1-flash", l3: "glm-5.3" };
 const defaults = { provider: "opencode-go", model: "deepseek-v4.1-flash", thinking: "high" };
 beforeAll(() => {
-  home = mkdtempSync(join(tmpdir(), "sentinel-")); const store = new Store(":memory:"); const bus = new Bus();
+  home = mkdtempSync(join(tmpdir(), "a0-")); const store = new Store(":memory:"); const bus = new Bus();
   const runner = new Runner(store, bus, { home, piBin: join(import.meta.dir, "fake-pi/pi"), concurrency: 2, timeout: 60 });
   server = startServer({ store, runner, bus, port: 0, uiPath: join(import.meta.dir, "../src/ui/index.html"), tiers, defaults });
   url = `http://127.0.0.1:${server.port}`;
@@ -35,7 +35,7 @@ test("sse replays and finishes", async () => {
   expect(text).toContain("event: event"); expect(text).toContain('"type":"session"'); expect(text.trim().endsWith("event: done\ndata: {}")).toBe(true);
 });
 
-test("serves ui", async () => { expect(await (await fetch(url + "/")).text()).toContain("Sentinel"); });
+test("serves ui", async () => { expect(await (await fetch(url + "/")).text()).toContain("a0"); });
 
 test("global events feed forwards status frames only, not per-token events", async () => {
   const ac = new AbortController();
@@ -171,9 +171,9 @@ test("tier resolution", async () => {
 });
 
 test("serves web dist when present, falls back to src/ui when missing", async () => {
-  const dist = mkdtempSync(join(tmpdir(), "sentinel-web-"));
+  const dist = mkdtempSync(join(tmpdir(), "a0-web-"));
   mkdirSync(join(dist, "assets"));
-  writeFileSync(join(dist, "index.html"), '<!doctype html><html><head><title>Sentinel</title></head><body><script type="module" src="/assets/x.js"></script></body></html>');
+  writeFileSync(join(dist, "index.html"), '<!doctype html><html><head><title>a0</title></head><body><script type="module" src="/assets/x.js"></script></body></html>');
   writeFileSync(join(dist, "assets", "x.js"), "console.log('x')");
   const store2 = new Store(":memory:"); const bus2 = new Bus();
   const runner2 = new Runner(store2, bus2, { home, piBin: join(import.meta.dir, "fake-pi/pi"), concurrency: 1, timeout: 30 });
@@ -197,7 +197,7 @@ test("serves web dist when present, falls back to src/ui when missing", async ()
   try {
     const base = `http://127.0.0.1:${srv2.port}`;
     const html = await (await fetch(base + "/")).text();
-    expect(html).toContain("Sentinel");
+    expect(html).toContain("a0");
     expect(html).not.toContain("/assets/x.js");
     expect((await fetch(base + "/assets/x.js")).status).toBe(404);
   } finally {

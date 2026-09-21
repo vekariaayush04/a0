@@ -22,7 +22,7 @@ test("sessions and runs", () => {
 });
 
 test("touchSession: first touch inside a git repo names the session after the repo dir", () => {
-  const root = mkdtempSync(join(tmpdir(), "sentinel-git-"));
+  const root = mkdtempSync(join(tmpdir(), "a0-git-"));
   const repoDir = join(root, "my-repo");
   const nestedCwd = join(repoDir, "src", "deep");
   mkdirSync(join(repoDir, ".git"), { recursive: true });

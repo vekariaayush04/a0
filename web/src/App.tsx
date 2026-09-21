@@ -1,4 +1,4 @@
-// App frame for Sentinel UI v3.
+// App frame for a0 UI v3.
 //
 //   Sidebar (260px, Sheet below 1100px)
 //   └ content

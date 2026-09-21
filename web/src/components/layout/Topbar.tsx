@@ -124,7 +124,7 @@ export function Topbar({
             {session.title || session.id}
           </Crumb>
         ) : (
-          <Crumb current>Sentinel</Crumb>
+          <Crumb current>a0</Crumb>
         )}
 
         {route.name === "run" ? (

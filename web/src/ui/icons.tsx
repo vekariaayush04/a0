@@ -6,7 +6,7 @@ export type IconProps = {
   strokeWidth?: number;
 };
 
-/** Sentinel mark: an 18px ring with a centre dot. */
+/** a0 mark: an 18px ring with a centre dot. */
 export function Mark({ size = 18, className, strokeWidth = 1.5 }: IconProps) {
   return (
     <svg

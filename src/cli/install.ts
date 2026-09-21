@@ -21,7 +21,7 @@ export async function install() {
 
   const skillDir = join(home, ".claude/skills");
   mkdirSync(skillDir, { recursive: true });
-  const skillLink = join(skillDir, "sentinel");
+  const skillLink = join(skillDir, "a0");
   const skillTarget = join(repo, "skill");
   if (!existsSync(skillLink)) {
     symlinkSync(skillTarget, skillLink);
@@ -34,43 +34,43 @@ export async function install() {
 
   const binDir = join(home, ".local/bin");
   mkdirSync(binDir, { recursive: true });
-  const binLink = join(binDir, "sentinel");
+  const binLink = join(binDir, "a0");
   const binTarget = join(repo, "src/cli/main.ts");
   if (!existsSync(binLink)) {
     symlinkSync(binTarget, binLink);
-    console.log("sentinel linked at " + binLink);
+    console.log("a0 linked at " + binLink);
   } else if (readlinkSync(binLink) === binTarget) {
-    console.log("sentinel already linked");
+    console.log("a0 already linked");
   } else {
     console.log(`${binLink} exists and is not ours; skipped`);
   }
 
-  console.log(`ui: http://127.0.0.1:${process.env.SENTINEL_PORT ?? 4747}`);
+  console.log(`ui: http://127.0.0.1:${process.env.A0_PORT ?? 4747}`);
 }
 
 async function installSystemdUnit(repo: string, home: string, bun: string) {
   const unitDir = join(home, ".config/systemd/user");
   mkdirSync(unitDir, { recursive: true });
-  const unitText = await Bun.file(join(repo, "systemd/sentineld.service")).text();
+  const unitText = await Bun.file(join(repo, "systemd/a0d.service")).text();
   writeFileSync(
-    join(unitDir, "sentineld.service"),
+    join(unitDir, "a0d.service"),
     unitText.replace("%BUN%", bun).replace("%REPO%", repo).replace("%PATH%", process.env.PATH ?? "/usr/bin")
   );
-  console.log(`systemd unit written to ${join(unitDir, "sentineld.service")}`);
+  console.log(`systemd unit written to ${join(unitDir, "a0d.service")}`);
 
   const r = Bun.spawnSync([
     "sh",
     "-c",
-    "systemctl --user daemon-reload && systemctl --user enable --now sentineld && systemctl --user restart sentineld",
+    "systemctl --user daemon-reload && systemctl --user enable --now a0d && systemctl --user restart a0d",
   ]);
   console.log(
     r.exitCode === 0
-      ? "sentineld enabled and (re)started"
-      : `systemd step failed (${r.stderr.toString().trim()}); run \`sentinel daemon\` manually`
+      ? "a0d enabled and (re)started"
+      : `systemd step failed (${r.stderr.toString().trim()}); run \`a0 daemon\` manually`
   );
 }
 
-const LAUNCHD_LABEL = "dev.sentinel.sentineld";
+const LAUNCHD_LABEL = "dev.a0.a0d";
 
 function installLaunchAgent(repo: string, home: string, bun: string) {
   const agentDir = join(home, "Library/LaunchAgents");
@@ -95,8 +95,8 @@ function installLaunchAgent(repo: string, home: string, bun: string) {
   <dict><key>PATH</key><string>${esc(process.env.PATH ?? "/usr/bin:/bin")}</string></dict>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
-  <key>StandardOutPath</key><string>${esc(join(logDir, "sentineld.log"))}</string>
-  <key>StandardErrorPath</key><string>${esc(join(logDir, "sentineld.log"))}</string>
+  <key>StandardOutPath</key><string>${esc(join(logDir, "a0d.log"))}</string>
+  <key>StandardErrorPath</key><string>${esc(join(logDir, "a0d.log"))}</string>
 </dict>
 </plist>
 `
@@ -108,7 +108,7 @@ function installLaunchAgent(repo: string, home: string, bun: string) {
   const r = Bun.spawnSync(["launchctl", "bootstrap", domain, plistPath]);
   console.log(
     r.exitCode === 0
-      ? "sentineld loaded and started"
-      : `launchctl step failed (${r.stderr.toString().trim()}); run \`sentinel daemon\` manually`
+      ? "a0d loaded and started"
+      : `launchctl step failed (${r.stderr.toString().trim()}); run \`a0 daemon\` manually`
   );
 }

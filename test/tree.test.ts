@@ -8,7 +8,7 @@ const runDir = join(import.meta.dir, "fixtures/tree/run");
 
 function fakeRun(patch: Partial<Run> = {}): Run {
   return {
-    id: "0mu04ukjirto2", sessionId: "s1", title: "scout demo", cwd: "/tmp/sentinel-demo",
+    id: "0mu04ukjirto2", sessionId: "s1", title: "scout demo", cwd: "/tmp/a0-demo",
     provider: "opencode-go", model: "opencode-go/deepseek-v4.1-flash", thinking: "high",
     status: "done", created: 1, started: 1789323225000, ended: 1789323241000,
     exitCode: 0, piSessionId: "01a09bf9-a882-75bd-b154-02125e2460f3", result: "done",

@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import pkg from "./package.json";
 
-const port = process.env.SENTINEL_PORT ?? "4747";
+const port = process.env.A0_PORT ?? "4747";
 
 export default defineConfig({
   plugins: [react()],

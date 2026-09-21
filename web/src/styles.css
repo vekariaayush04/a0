@@ -24,7 +24,7 @@
 @tailwind utilities;
 
 /* ---------------------------------------------------------------------------
-   Sentinel UI v3 tokens.
+   a0 UI v3 tokens.
 
    Monochrome by construction: every surface, border and text colour is a step
    on a neutral ramp, so there is exactly one hue in the palette. The single
@@ -35,7 +35,7 @@
    Two token families live here:
      * shadcn/ui tokens (--background, --card, --border, …) consumed by the
        generated components in src/components/ui/*.
-     * Sentinel legacy tokens (--fg, --fg-2, --line, …) still consumed by the
+     * a0 legacy tokens (--fg, --fg-2, --line, …) still consumed by the
        Tree and Subagent screens until those are rebuilt. Both families are
        derived from the same ramp so the two never disagree.
 --------------------------------------------------------------------------- */
@@ -85,7 +85,7 @@
 
   color-scheme: light;
 
-  /* --- legacy Sentinel tokens (Tree / Subagent screens) --- */
+  /* --- legacy a0 tokens (Tree / Subagent screens) --- */
   --bg: hsl(var(--background));
   --fg: hsl(var(--foreground));
   --accent-rgb: #0a84ff;
@@ -197,7 +197,7 @@
 
 /* ---- motion ------------------------------------------------------------- */
 
-@keyframes sentinel-pulse {
+@keyframes a0-pulse {
   0%,
   100% {
     opacity: 1;
@@ -210,7 +210,7 @@
 }
 
 .pulse {
-  animation: sentinel-pulse 1.6s ease-in-out infinite;
+  animation: a0-pulse 1.6s ease-in-out infinite;
 }
 
 /* Accent halo behind a live dot. */
@@ -220,7 +220,7 @@
   inset: -3px;
   border-radius: 999px;
   background: hsl(var(--live) / 0.22);
-  animation: sentinel-pulse 1.6s ease-in-out infinite;
+  animation: a0-pulse 1.6s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

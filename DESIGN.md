@@ -1,4 +1,4 @@
-# Sentinel — design
+# a0 — design
 
 This is the working design document. It records the decisions behind the
 code; the README covers usage.
@@ -20,20 +20,20 @@ minimal black-and-white UI to browse sessions, runs and live logs.
 | Skill scope | Plan, dispatch, wait, review. Parallel runs allowed. |
 | Pi provider and model | Default `opencode-go` / `deepseek-v4.1-flash`, overridable per run. |
 | Stack | Bun + TypeScript. Bun ships SQLite and an HTTP server, Pi itself is TypeScript. |
-| Location | `~/garage/sentinel` |
+| Location | `~/garage/a0` |
 
 Out of scope for v1: watching all Claude sessions, auth, remote access,
 editing briefs in the UI, OpenRouter (the stored key is dead).
 
 ## Components
 
-### sentineld (daemon)
+### a0d (daemon)
 
 - Bun HTTP server on `127.0.0.1:4747`, run as a per-user service (systemd
-  `sentineld.service` on Linux, a launchd LaunchAgent on macOS), with
-  `sentinel daemon` as a manual fallback.
-- State directory `~/.local/share/sentinel/`:
-  - `sentinel.db` — SQLite (bun:sqlite).
+  `a0d.service` on Linux, a launchd LaunchAgent on macOS), with
+  `a0 daemon` as a manual fallback.
+- State directory `~/.local/share/a0/`:
+  - `a0.db` — SQLite (bun:sqlite).
   - `runs/<runId>/brief.md`, `events.jsonl` (raw Pi JSON events),
     `stderr.log`, `result.md`, `pi-session/` (Pi's own session dir via
     `--session-dir`).
@@ -52,36 +52,36 @@ editing briefs in the UI, OpenRouter (the stored key is dead).
 - Broadcasts events to SSE subscribers per run and a global SSE feed for
   list updates.
 
-### sentinel (CLI)
+### a0 (CLI)
 
 Thin HTTP client used by the skill and by humans. All commands print JSON
 with `--json` (default when stdout is not a TTY).
 
 ```
-sentinel run --session <claudeSessionId> --cwd <dir> --title <t> [--brief-file <f> | --brief <text>] [--model m] [--tier l1|l2|l3] [--provider p] [--thinking l] [--session-title <t>] [--wait] [--timeout s] [--json]
-sentinel wait <runId...>          # blocks until all given runs finish, prints results
-sentinel status [--session id]    # sessions and runs summary
-sentinel logs <runId> [--follow]  # events rendered as text
-sentinel result <runId>           # prints result.md
-sentinel cancel <runId>
-sentinel open                     # opens the UI in the browser
-sentinel daemon                   # runs the daemon in the foreground
-sentinel install                  # installs the user service (systemd or launchd), symlinks the CLI and skill
+a0 run --session <claudeSessionId> --cwd <dir> --title <t> [--brief-file <f> | --brief <text>] [--model m] [--tier l1|l2|l3] [--provider p] [--thinking l] [--session-title <t>] [--wait] [--timeout s] [--json]
+a0 wait <runId...>          # blocks until all given runs finish, prints results
+a0 status [--session id]    # sessions and runs summary
+a0 logs <runId> [--follow]  # events rendered as text
+a0 result <runId>           # prints result.md
+a0 cancel <runId>
+a0 open                     # opens the UI in the browser
+a0 daemon                   # runs the daemon in the foreground
+a0 install                  # installs the user service (systemd or launchd), symlinks the CLI and skill
 ```
 
-### Claude skill `~/.claude/skills/sentinel/SKILL.md`
+### Claude skill `~/.claude/skills/a0/SKILL.md`
 
 Trigger: user asks to execute, build or research via Pi, or says
-"sentinel" or "dispatch". Steps the skill instructs Claude to follow:
+"a0" or "dispatch". Steps the skill instructs Claude to follow:
 
 1. Derive the Claude session id from the scratchpad path
    (`.../<sessionId>/scratchpad`).
 2. Plan the work. Split into units that do not touch the same files.
 3. For each unit write a brief in the scratchpad: goal, context, files,
    constraints, acceptance criteria, what to report back.
-4. `sentinel run` each brief with `--cwd` set to the project. Fire
+4. `a0 run` each brief with `--cwd` set to the project. Fire
    independent units in one Bash call so they run in parallel.
-5. `sentinel wait` on the run ids.
+5. `a0 wait` on the run ids.
 6. Read results, verify independently (tests, diff, build). If a unit
    failed or is incomplete, write a follow-up brief and dispatch again.
 7. Report to the user with run ids and the UI link.
@@ -108,7 +108,7 @@ repo root; `bun` runs everything (`bun install`, `bun run dev`,
 `web/dist` at `/` (index.html plus `/assets/*`, content-hashed and cached
 immutably) and falls back to `src/ui/index.html` only when `web/dist` is
 missing. To keep the daemon from silently serving a stale page,
-`sentinel install` builds the web UI before restarting the service, the
+`a0 install` builds the web UI before restarting the service, the
 root `postinstall` builds it when `web/node_modules` is already present,
 and daemon boot logs `web ui not built; serving legacy page. Run: bun run web:build`
 when `web/dist/index.html` is absent.
@@ -135,19 +135,19 @@ is styled standalone.
 
 ## Configuration
 
-Environment variables, all optional: `SENTINEL_PORT` (4747), `SENTINEL_HOME`
-(`~/.local/share/sentinel`), `SENTINEL_PI_BIN` (`pi`), `SENTINEL_PROVIDER`
-(`opencode-go`), `SENTINEL_MODEL` (`deepseek-v4.1-flash`), `SENTINEL_THINKING`
-(`high`), `SENTINEL_CONCURRENCY` (4), `SENTINEL_TIMEOUT` (1800 seconds).
+Environment variables, all optional: `A0_PORT` (4747), `A0_HOME`
+(`~/.local/share/a0`), `A0_PI_BIN` (`pi`), `A0_PROVIDER`
+(`opencode-go`), `A0_MODEL` (`deepseek-v4.1-flash`), `A0_THINKING`
+(`high`), `A0_CONCURRENCY` (4), `A0_TIMEOUT` (1800 seconds).
 
-`SENTINEL_URL` is CLI-only: overrides the base URL the CLI talks to,
-default `http://127.0.0.1:${SENTINEL_PORT ?? 4747}`. Useful for pointing
-the CLI at a daemon on a non-default port without changing `SENTINEL_PORT`
+`A0_URL` is CLI-only: overrides the base URL the CLI talks to,
+default `http://127.0.0.1:${A0_PORT ?? 4747}`. Useful for pointing
+the CLI at a daemon on a non-default port without changing `A0_PORT`
 (which the daemon itself would also pick up).
 
-**Model tiers.** `SENTINEL_TIER_L1` (`muse-spark-1.3-contributor`),
-`SENTINEL_TIER_L2` (defaults to `SENTINEL_MODEL`, i.e. `deepseek-v4.1-flash`),
-`SENTINEL_TIER_L3` (`glm-5.3`). `sentinel run --tier l1|l2|l3` resolves to
+**Model tiers.** `A0_TIER_L1` (`muse-spark-1.3-contributor`),
+`A0_TIER_L2` (defaults to `A0_MODEL`, i.e. `deepseek-v4.1-flash`),
+`A0_TIER_L3` (`glm-5.3`). `a0 run --tier l1|l2|l3` resolves to
 the corresponding model; `--model` overrides a tier when set.
 
 ## Data model
@@ -248,7 +248,7 @@ loopback only. Every non-GET request is checked for CSRF: a present
 
 - Unit: Pi event parser (fixtures from real `pi -p --mode json` output),
   store operations, run id generation, queue and concurrency cap.
-- Integration: start the daemon with `SENTINEL_PI_BIN` pointing at a fake
+- Integration: start the daemon with `A0_PI_BIN` pointing at a fake
   `pi` script that emits canned events and sleeps, then exercise run,
   wait, cancel, timeout and SSE through the CLI.
 - Smoke: one real run through OpenCode Go with `deepseek-v4.1-flash`.
@@ -257,13 +257,13 @@ loopback only. Every non-GET request is checked for CSRF: a present
 ## Repository layout
 
 ```
-sentinel/
+a0/
   package.json
   src/daemon/   server.ts, runner.ts, store.ts, events.ts, bus.ts, main.ts
   src/cli/      main.ts
   src/ui/       index.html
-  skill/        SKILL.md          (symlinked into ~/.claude/skills/sentinel)
-  systemd/      sentineld.service
+  skill/        SKILL.md          (symlinked into ~/.claude/skills/a0)
+  systemd/      a0d.service
   test/         fake-pi/ plus unit and integration tests
   DESIGN.md README.md CONTRIBUTING.md LICENSE
 ```

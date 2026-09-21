@@ -403,7 +403,7 @@ export function HomeView() {
           Once Claude Code dispatches a run, today's activity will show up here.
         </p>
         <p className="mt-4 rounded-md border border-border bg-muted px-2.5 py-1.5 font-mono text-10 text-muted-foreground">
-          In Claude Code, say “use sentinel to …”
+          In Claude Code, say “use a0 to …”
         </p>
       </div>
     );

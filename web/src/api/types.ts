@@ -1,4 +1,4 @@
-// Types for the Sentinel daemon API. Kept verbatim with the API contract in
+// Types for the a0 daemon API. Kept verbatim with the API contract in
 // .superpowers/react/DESIGN-WEB.md so the daemon and web app share one shape.
 
 export type Status = "queued" | "running" | "done" | "failed" | "cancelled";

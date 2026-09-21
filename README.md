@@ -1,15 +1,15 @@
-# Sentinel
+# a0
 
 **Plan in Claude. Execute in Pi. Watch everything from one place.**
 
-Sentinel is a small local daemon, a CLI, a Claude Code skill and a
+a0 is a small local daemon, a CLI, a Claude Code skill and a
 black-and-white web UI. Together they let a Claude Code session (Opus 5 or
 Fable 5.1) do the thinking and hand the actual work to headless
 [Pi](https://pi.dev) agents running on cheaper models, while you follow
 every run, its log and its cost from a single page.
 
 ```
-Claude Code session ──(skill)──▶ sentinel CLI ──▶ sentineld ──▶ pi -p --mode json
+Claude Code session ──(skill)──▶ a0 CLI ──▶ a0d ──▶ pi -p --mode json
                                                      │
                                                      └──▶ http://127.0.0.1:4747  (UI, live logs)
 ```
@@ -18,16 +18,16 @@ Claude Code session ──(skill)──▶ sentinel CLI ──▶ sentineld ─�
 
 Frontier models are great planners and reviewers and expensive executors.
 Pi runs happily on OpenCode Go, OpenRouter or any provider it supports, in
-headless mode, with structured JSON output. Sentinel is the glue: it gives
+headless mode, with structured JSON output. a0 is the glue: it gives
 Claude a way to dispatch bounded tasks, wait for them, read the results and
 iterate, and it remembers which Claude session started which runs so you
 can always find them again.
 
 ## What you get
 
-- **sentineld** — a daemon that spawns and owns Pi runs, caps concurrency,
+- **a0d** — a daemon that spawns and owns Pi runs, caps concurrency,
   stores every event, and serves the UI. Loopback only.
-- **sentinel** — a CLI for humans and for Claude: `run`, `wait`, `status`,
+- **a0** — a CLI for humans and for Claude: `run`, `wait`, `status`,
   `logs`, `result`, `cancel`, `open`.
 - **A Claude Code skill** — Claude plans, writes one brief per independent
   unit of work, fires them in parallel, waits, verifies, and reports.
@@ -52,26 +52,26 @@ can always find them again.
 ## Install
 
 The steps are the same on Linux and macOS; only the background service
-differs, and `sentinel install` picks the right one.
+differs, and `a0 install` picks the right one.
 
 ```bash
-git clone git@github.com:vekariaayush04/sentinel.git
-cd sentinel
+git clone git@github.com:vekariaayush04/a0.git
+cd a0
 bun install
 bun src/cli/main.ts install   # builds the UI, installs the service, links CLI + skill
-sentinel open                 # opens http://127.0.0.1:4747
+a0 open                 # opens http://127.0.0.1:4747
 ```
 
-`sentinel install` does four things:
+`a0 install` does four things:
 
 1. Builds the web UI (`bun install --frozen-lockfile` and `bun run build`
    inside `web/`). If that fails it says why and carries on; the daemon
    then serves a minimal legacy page until you run `bun run web:build`.
 2. Installs and starts the daemon as a per-user background service that
    starts at login and restarts if it dies (see below).
-3. Symlinks the CLI to `~/.local/bin/sentinel`. Make sure `~/.local/bin`
+3. Symlinks the CLI to `~/.local/bin/a0`. Make sure `~/.local/bin`
    is on your `PATH`.
-4. Symlinks the Claude Code skill to `~/.claude/skills/sentinel`.
+4. Symlinks the Claude Code skill to `~/.claude/skills/a0`.
 
 Run it again after `git pull`; it is safe to repeat. The daemon runs from
 your checkout, so keep the folder where it is.
@@ -79,25 +79,25 @@ your checkout, so keep the folder where it is.
 ### Linux (systemd)
 
 The service is a systemd user unit at
-`~/.config/systemd/user/sentineld.service`.
+`~/.config/systemd/user/a0d.service`.
 
 ```bash
-systemctl --user status sentineld
-systemctl --user restart sentineld
-journalctl --user -u sentineld -f        # daemon logs
+systemctl --user status a0d
+systemctl --user restart a0d
+journalctl --user -u a0d -f        # daemon logs
 loginctl enable-linger "$USER"           # optional: keep it running while logged out (servers)
 ```
 
 ### macOS (launchd)
 
 The service is a LaunchAgent at
-`~/Library/LaunchAgents/dev.sentinel.sentineld.plist`, logging to
-`~/Library/Logs/sentineld.log`.
+`~/Library/LaunchAgents/dev.a0.a0d.plist`, logging to
+`~/Library/Logs/a0d.log`.
 
 ```bash
-launchctl print gui/$(id -u)/dev.sentinel.sentineld        # status
-launchctl kickstart -k gui/$(id -u)/dev.sentinel.sentineld # restart
-tail -f ~/Library/Logs/sentineld.log                       # daemon logs
+launchctl print gui/$(id -u)/dev.a0.a0d        # status
+launchctl kickstart -k gui/$(id -u)/dev.a0.a0d # restart
+tail -f ~/Library/Logs/a0d.log                       # daemon logs
 ```
 
 `~/.local/bin` is not on the default macOS `PATH`; add
@@ -105,7 +105,7 @@ tail -f ~/Library/Logs/sentineld.log                       # daemon logs
 
 ### No service manager
 
-Anywhere else (containers, WSL without systemd), run `sentinel daemon` in
+Anywhere else (containers, WSL without systemd), run `a0 daemon` in
 a terminal or under your own supervisor.
 
 ### Keeping the machine awake
@@ -113,20 +113,20 @@ a terminal or under your own supervisor.
 Long runs stop if the laptop sleeps. Wrap the wait:
 
 ```bash
-systemd-inhibit --what=sleep sentinel wait <runId>   # Linux
-caffeinate -i sentinel wait <runId>                  # macOS
+systemd-inhibit --what=sleep a0 wait <runId>   # Linux
+caffeinate -i a0 wait <runId>                  # macOS
 ```
 
 ### Uninstall
 
 ```bash
 # Linux
-systemctl --user disable --now sentineld && rm ~/.config/systemd/user/sentineld.service
+systemctl --user disable --now a0d && rm ~/.config/systemd/user/a0d.service
 # macOS
-launchctl bootout gui/$(id -u)/dev.sentinel.sentineld && rm ~/Library/LaunchAgents/dev.sentinel.sentineld.plist
+launchctl bootout gui/$(id -u)/dev.a0.a0d && rm ~/Library/LaunchAgents/dev.a0.a0d.plist
 # both
-rm ~/.local/bin/sentinel ~/.claude/skills/sentinel
-rm -rf ~/.local/share/sentinel    # run history and logs
+rm ~/.local/bin/a0 ~/.claude/skills/a0
+rm -rf ~/.local/share/a0    # run history and logs
 ```
 
 ## Usage
@@ -134,14 +134,14 @@ rm -rf ~/.local/share/sentinel    # run history and logs
 From any shell:
 
 ```bash
-sentinel run --title "Add pagination to /users" --brief-file brief.md --cwd ~/code/api --wait
-sentinel status
-sentinel logs <runId> --follow
+a0 run --title "Add pagination to /users" --brief-file brief.md --cwd ~/code/api --wait
+a0 status
+a0 logs <runId> --follow
 ```
 
 From Claude Code, just ask:
 
-> Use sentinel to implement the plan. Split it into independent runs.
+> Use a0 to implement the plan. Split it into independent runs.
 
 Claude derives its own session id, writes the briefs, dispatches, waits,
 reads the results and tells you where to look.
@@ -177,7 +177,7 @@ first one for a session — to name it something more useful instead, for
 example:
 
 ```bash
-sentinel run --title "Add pagination to /users" --brief-file brief.md \
+a0 run --title "Add pagination to /users" --brief-file brief.md \
   --cwd ~/code/api --session-title "Paginate the users API" --wait
 ```
 
@@ -189,18 +189,18 @@ daemon-wide and today's run/cost totals, and is what the UI's header uses.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `SENTINEL_PORT` | `4747` | Daemon port on 127.0.0.1 |
-| `SENTINEL_HOME` | `~/.local/share/sentinel` | Database and run folders |
-| `SENTINEL_PI_BIN` | `pi` | Pi executable |
-| `SENTINEL_PROVIDER` | `opencode-go` | Default provider |
-| `SENTINEL_MODEL` | `deepseek-v4.1-flash` | Default model |
-| `SENTINEL_THINKING` | `high` | Default thinking level |
-| `SENTINEL_CONCURRENCY` | `4` | Max simultaneous Pi processes |
-| `SENTINEL_TIMEOUT` | `1800` | Per-run timeout in seconds |
-| `SENTINEL_TIER_L1` | `muse-spark-1.3-contributor` | Model for `--tier l1` |
-| `SENTINEL_TIER_L2` | `deepseek-v4.1-flash` (`SENTINEL_MODEL`) | Model for `--tier l2` |
-| `SENTINEL_TIER_L3` | `glm-5.3` | Model for `--tier l3` |
-| `SENTINEL_URL` | `http://127.0.0.1:${SENTINEL_PORT ?? 4747}` | CLI-only: base URL the CLI talks to |
+| `A0_PORT` | `4747` | Daemon port on 127.0.0.1 |
+| `A0_HOME` | `~/.local/share/a0` | Database and run folders |
+| `A0_PI_BIN` | `pi` | Pi executable |
+| `A0_PROVIDER` | `opencode-go` | Default provider |
+| `A0_MODEL` | `deepseek-v4.1-flash` | Default model |
+| `A0_THINKING` | `high` | Default thinking level |
+| `A0_CONCURRENCY` | `4` | Max simultaneous Pi processes |
+| `A0_TIMEOUT` | `1800` | Per-run timeout in seconds |
+| `A0_TIER_L1` | `muse-spark-1.3-contributor` | Model for `--tier l1` |
+| `A0_TIER_L2` | `deepseek-v4.1-flash` (`A0_MODEL`) | Model for `--tier l2` |
+| `A0_TIER_L3` | `glm-5.3` | Model for `--tier l3` |
+| `A0_URL` | `http://127.0.0.1:${A0_PORT ?? 4747}` | CLI-only: base URL the CLI talks to |
 
 ## How a run works
 
@@ -218,7 +218,7 @@ each leave a run in `failed` or `cancelled` with a reason.
 
 ## Security
 
-Sentinel binds to `127.0.0.1` only and has no authentication — anything
+a0 binds to `127.0.0.1` only and has no authentication — anything
 that can reach the port can drive it. The API rejects cross-origin browser
 requests (a mismatched `Origin` header gets a 403) and non-JSON POST
 bodies (a 415), which blocks the common ways a malicious web page could

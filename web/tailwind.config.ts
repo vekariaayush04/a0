@@ -2,7 +2,7 @@ import type { Config } from "tailwindcss";
 import animate from "tailwindcss-animate";
 
 /**
- * Sentinel UI v3.
+ * a0 UI v3.
  *
  * Colour is a single neutral ramp plus one accent (`live`). Every colour here
  * resolves through a CSS variable defined in src/styles.css, so light/dark is
@@ -61,7 +61,7 @@ export default {
           1: "hsl(var(--elev-1))",
           2: "hsl(var(--elev-2))",
         },
-        // ---- legacy Sentinel tokens (Tree / Subagent screens) ----
+        // ---- legacy a0 tokens (Tree / Subagent screens) ----
         bg: "var(--bg)",
         fg: "var(--fg)",
         fg2: "var(--fg-2)",

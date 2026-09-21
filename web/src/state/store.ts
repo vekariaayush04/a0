@@ -18,7 +18,7 @@ export type State = {
   overlayOpen: boolean;
 };
 
-const THEME_KEY = "sentinel.theme";
+const THEME_KEY = "a0.theme";
 
 /** `?theme=light|dark|system` wins over the stored choice, for screenshotting. */
 function themeFromSearch(): Theme | null {

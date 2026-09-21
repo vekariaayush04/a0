@@ -14,7 +14,7 @@ import { SessionList } from "@/features/sessions/SessionList";
 import { cn } from "@/lib/utils";
 import { cycleTheme, setOverlayOpen, useStore } from "@/state/store";
 
-/** Sentinel mark: a ring with a centre dot. */
+/** a0 mark: a ring with a centre dot. */
 function Mark({ className }: { className?: string }) {
   return (
     <svg
@@ -38,7 +38,7 @@ export function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
       <div className="flex h-12 shrink-0 items-center gap-2 px-4">
         <Mark className="text-foreground" />
         <span className="text-13 font-semibold tracking-[-0.01em] text-foreground">
-          Sentinel
+          a0
         </span>
         <span className="mt-px font-mono text-10 text-muted-foreground">
           v{__APP_VERSION__}

@@ -1,4 +1,4 @@
-{"type":"session","version":3,"id":"01a09a44-2c7f-75c1-af73-ba867576f2ca","timestamp":"2026-09-13T10:15:54.240Z","cwd":"/home/ayush/garage/sentinel"}
+{"type":"session","version":3,"id":"01a09a44-2c7f-75c1-af73-ba867576f2ca","timestamp":"2026-09-13T10:15:54.240Z","cwd":"/home/ayush/garage/a0"}
 {"type":"agent_start"}
 {"type":"turn_start"}
 {"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"hi"}],"timestamp":1789294554304}}

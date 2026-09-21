@@ -1,9 +1,9 @@
 ---
-name: sentinel
-description: Plan work in this Claude session and execute it through headless Pi runs tracked by the Sentinel daemon. Use when the user asks to dispatch, delegate, execute, build or research via Pi or Sentinel, or wants parallel execution on a cheaper model.
+name: a0
+description: Plan work in this Claude session and execute it through headless Pi runs tracked by the a0 daemon. Use when the user asks to dispatch, delegate, execute, build or research via Pi or a0, or wants parallel execution on a cheaper model.
 ---
 
-# Sentinel: plan here, execute in Pi
+# a0: plan here, execute in Pi
 
 You are the planner and reviewer. Pi runs are the executors. Keep the
 heavy reasoning in this session; give Pi concrete, bounded briefs.
@@ -30,14 +30,14 @@ the UI groups your runs under this session.
    `Acceptance` section.
 3. **Dispatch.** In one Bash call, fire every unit of the wave:
    ```bash
-   sentinel run --session <sessionId> --cwd <project> --title "<short title>" --brief-file <scratchpad>/brief-1-x.md --json
-   sentinel run --session <sessionId> --cwd <project> --title "<short title>" --brief-file <scratchpad>/brief-2-y.md --json
+   a0 run --session <sessionId> --cwd <project> --title "<short title>" --brief-file <scratchpad>/brief-1-x.md --json
+   a0 run --session <sessionId> --cwd <project> --title "<short title>" --brief-file <scratchpad>/brief-2-y.md --json
    ```
    Each prints a run JSON with an `id`. On the first dispatch of a session,
    also pass `--session-title "<5-8 word summary of the user's task>"` so
    the session reads clearly in the UI's session list.
 
-   **Model tiers.** Sentinel has three tiers, configured in the daemon:
+   **Model tiers.** a0 has three tiers, configured in the daemon:
    - `--tier l1` (cheap, Muse Spark): the brief is mostly reading.
      Rule of thumb: it asks Pi to read or summarise more than ~10 files,
      or it is research, scouting, log analysis, or fact collection with
@@ -52,21 +52,21 @@ the UI groups your runs under this session.
    mixes heavy reading with editing, dispatch at l2 and tell Pi in the `Do`
    section: "use the scout subagent with model muse-spark-1.3-contributor
    to map the code first, then edit".
-4. **Wait.** `sentinel wait <id1> <id2> ...` blocks until every run is
+4. **Wait.** `a0 wait <id1> <id2> ...` blocks until every run is
    terminal and prints their final state, including `result`.
 5. **Verify yourself.** Do not trust the summary. Run the acceptance
    commands, read `git diff`, run tests. For a failed or incomplete run
-   read `sentinel logs <id>` and `sentinel result <id>`.
+   read `a0 logs <id>` and `a0 result <id>`.
 6. **Iterate.** Write a follow-up brief that names exactly what is
    missing and dispatch again. Do not re-send the whole original brief.
 7. **Report.** Tell the user what was built, what you verified, the run
    ids, and that details are at http://127.0.0.1:4747 (or the port in
-   SENTINEL_PORT).
+   A0_PORT).
 
 ## Rules
 
-- If `sentinel` reports it cannot reach the daemon, run
-  `sentinel install` once, or `sentinel daemon` in the background, then
+- If `a0` reports it cannot reach the daemon, run
+  `a0 install` once, or `a0 daemon` in the background, then
   retry.
 - Briefs under 100 000 characters. Put big context in files in the
   project and reference the paths instead.
@@ -76,4 +76,4 @@ the UI groups your runs under this session.
 - Every brief must contain this line under `Do not`: "Never use pkill,
   killall, or kill by name. Stop only processes you started, by the PID
   you captured (`$!`). Never touch systemd or port 4747." Pi runs share
-  the machine with the Sentinel daemon; a broad kill has taken it down.
+  the machine with the a0 daemon; a broad kill has taken it down.

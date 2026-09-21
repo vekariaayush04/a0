@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { parseArgs } from "node:util";
 
-const BASE = process.env.SENTINEL_URL ?? `http://127.0.0.1:${process.env.SENTINEL_PORT ?? 4747}`;
+const BASE = process.env.A0_URL ?? `http://127.0.0.1:${process.env.A0_PORT ?? 4747}`;
 const [cmd, ...rest] = process.argv.slice(2);
 
 function die(m: string): never {
@@ -14,7 +14,7 @@ async function api(p: string, init?: RequestInit): Promise<Response> {
   try {
     res = await fetch(BASE + p, init);
   } catch {
-    return die(`cannot reach sentineld at ${BASE}; run \`sentinel daemon\` or \`sentinel install\``);
+    return die(`cannot reach a0d at ${BASE}; run \`a0 daemon\` or \`a0 install\``);
   }
   if (!res.ok) {
     let m = res.statusText;
@@ -222,7 +222,7 @@ async function main() {
       await (await import("./install.ts")).install();
       break;
     default:
-      console.log(`sentinel <run|wait|status|logs|result|cancel|open|daemon|install>`);
+      console.log(`a0 <run|wait|status|logs|result|cancel|open|daemon|install>`);
       process.exit(cmd ? 1 : 0);
   }
 }

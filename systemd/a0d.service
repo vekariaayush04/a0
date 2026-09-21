@@ -1,5 +1,5 @@
 [Unit]
-Description=Sentinel daemon (Pi run tracker)
+Description=a0 daemon (Pi run tracker)
 After=default.target
 
 [Service]

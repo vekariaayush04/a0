@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for looking. Sentinel is small on purpose; keep it that way.
+Thanks for looking. a0 is small on purpose; keep it that way.
 
 ## Ground rules
 
