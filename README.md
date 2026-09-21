@@ -38,8 +38,9 @@ can always find them again.
   spend. Black and white, light and dark, keyboard driven (`j`/`k`,
   `Enter`, `Esc`, `⌘K`, `?`).
 - **Subagent transcripts** — when a run's Pi agent fans out subagents (via
-  the pi-subagents extension), each one appears as a chip above the run's log; click it to read that
-  subagent's full transcript, cost and tool calls.
+  the pi-subagents extension), each one appears as a chip above the run's
+  log; click it to read that subagent's full transcript, cost and tool
+  calls.
 
 ## Requirements
 
